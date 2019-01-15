@@ -2,7 +2,6 @@ import os
 import sys
 sys.path.append('C:\Program Files\GDCM 2.8\lib')
 import pydicom
-from PIL import *
 import subprocess
 # import gdcm
 import matplotlib.pyplot as plt
