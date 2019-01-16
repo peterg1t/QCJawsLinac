@@ -2,9 +2,10 @@ import os
 import sys
 sys.path.append('C:\Program Files\GDCM 2.8\lib')
 import pydicom
+from PIL import *
 import subprocess
-# import gdcm
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 from tqdm import tqdm
 import numpy as np
 from scipy.signal import butter, filtfilt
@@ -156,14 +157,13 @@ def peak_find(amp_peak):
     peaks_w = peak_widths(amp_peak,peaks,rel_height=0.5)
     print('peaks_width=',peaks_w)
     print('peak prominence=',peak_prominences(amp_peak,peaks))
-    plt.figure()
+    fig=plt.figure()
     plt.plot(amp_peak)
     plt.plot(peaks,amp_peak[peaks],"x")
     plt.hlines(*peaks_w[1:], color="C2")
     plt.show()
     print('peaks',peaks)
-    # exit(0)
-    return peaks
+    return peaks, fig
 
 
 
@@ -313,7 +313,7 @@ def merge_view_horz(volume,dx,dy):
 
 
 
-    peaks = peak_find(amp_peak)
+    peaks,fig2 = peak_find(amp_peak)
     minimize_junction(ampl_resamp,peaks, dx / 10)
 
 
@@ -321,7 +321,7 @@ def merge_view_horz(volume,dx,dy):
 
 
 
-
+    return fig,fig2
 
 
 
@@ -475,7 +475,18 @@ def read_dicom3D(dirname,poption):
     if k==2:
         merge_view_vert(ArrayDicom, dx, dy)
     else:
-        merge_view_horz(ArrayDicom, dx, dy)
+        fig,fig2=merge_view_horz(ArrayDicom, dx, dy)
+
+
+    with PdfPages('multipage_pdf.pdf') as pdf:
+        # plt.figure()
+        # plt.plot(amp_peak)
+        # plt.plot(peaks, amp_peak[peaks], "x")
+        # plt.hlines(*peaks_w[1:], color="C2")
+        pdf.savefig(fig)
+        pdf.savefig(fig2)
+        plt.close()
+
 
     plt.show(block=True)
 
