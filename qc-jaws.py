@@ -151,19 +151,35 @@ def minimize_junction(amplitude, peaks,dx):
 
 
 
+# this subroutine aims to find the peaks
+def peak_find(ampl_resamp,dx):
+    # print('type=',type(ampl_resamp),'shape=',ampl_resamp.shape[1])
+    peaks=np.zeros(ampl_resamp.shape[1]-1,dtype=int)
+    peak_figs=[]
+    for j in range(0, ampl_resamp.shape[1]-1):
+        print('j=',j)
+        amp_base_res = ampl_resamp[:,j]
+        amp_overlay_res = ampl_resamp[:,j+1]
+        amp_peak=(amp_base_res+amp_overlay_res)/2
+        peak, _ = find_peaks(amp_peak, prominence=500)
+        peaks[j]=peak[0]
+        x = np.linspace(0, 0 + (len(amp_peak) * dx/10), len(amp_peak), endpoint=False)  # definition of the distance axis
+        fig=plt.figure()
+        plt.plot(x,amp_peak,label='Total amplitude profile')
+        plt.plot(x[peak],amp_peak[peak],"x",label='Peaks detected')
+        plt.ylabel('amplitude [a.u.]')
+        plt.xlabel('distance [mm]')
+        plt.legend()
+        fig.suptitle('Junctions', fontsize=16)
+        peak_figs.append(fig)
 
-def peak_find(amp_peak):
-    peaks,_ = find_peaks(amp_peak,prominence=15,height=(14000,15500),width=(50,250))
-    peaks_w = peak_widths(amp_peak,peaks,rel_height=0.5)
-    print('peaks_width=',peaks_w)
-    print('peak prominence=',peak_prominences(amp_peak,peaks))
-    fig=plt.figure()
-    plt.plot(amp_peak)
-    plt.plot(peaks,amp_peak[peaks],"x")
-    plt.hlines(*peaks_w[1:], color="C2")
     plt.show()
+    # print('peaks=',peaks)
+    # exit(0)
+
+
     print('peaks',peaks)
-    return peaks, fig
+    return peaks, peak_figs
 
 
 
@@ -196,17 +212,21 @@ def merge_view_vert(volume,dx,dy):
     ampl_resamp = np.zeros(((volume.shape[1])*10, volume.shape[2]))
     amp_peak = np.zeros((volume.shape[1]) * 10)
 
+
     for slice in tqdm(range(0,volume.shape[2])):
         merge_vol = merge_vol + volume[:, :, slice]
         amplitude[:,slice]=volume[int(volume.shape[0] / 2), :, slice]
-        ampl_resamp[:,slice]=signal.resample(amplitude[:,slice],int(len(amplitude))*10) #resampling the amplitude vector
+        ampl_resamp[:,slice]=-1*signal.resample(amplitude[:,slice],int(len(amplitude))*10) #resampling the amplitude vector
         amp_peak=amp_peak+ampl_resamp[:,slice]/volume.shape[2]
 
 
 
 
 
-    fig, ax = plt.subplots(nrows=2,squeeze=True,sharex=True)
+
+
+
+    fig, ax = plt.subplots(nrows=2,squeeze=True,sharex=True, figsize=(6,8))
 
     extent = (0, 0 + (volume.shape[1] * dx),
               0, 0 + (volume.shape[0] * dy))
@@ -226,14 +246,11 @@ def merge_view_vert(volume,dx,dy):
 
 
 
+    peaks,peak_figs = peak_find(ampl_resamp,dx)
+    minimize_junction(ampl_resamp,peaks, dx / 10)
 
 
-
-    peaks = peak_find(amp_peak)
-    minimize_junction(ampl_resamp,peaks,dx/10)
-
-
-
+    return fig, peak_figs
 
 
 
@@ -289,7 +306,7 @@ def merge_view_horz(volume,dx,dy):
         amp_peak = amp_peak + ampl_resamp[:, slice] / volume.shape[2]
 
 
-    fig, ax = plt.subplots(nrows=2, squeeze=True, sharey=True)
+    fig, ax = plt.subplots(nrows=2, squeeze=True, sharey=True, figsize=(6,8))
 
 
     extent = (0, 0 + (volume.shape[1] * dx),
@@ -301,27 +318,24 @@ def merge_view_horz(volume,dx,dy):
     ax[0].set_xlabel('x distance [mm]')
     ax[0].set_ylabel('y distance [mm]')
 
-    ax[1].plot(amplitude,x)
+    ax[1].plot(amplitude,x,label='Amplitude profile')
     # ax[1].set_xlabel('x distance [mm]')
     # ax[1].set_ylabel('amplitude')
     ax[1].set_xlabel('amplitude')
     ax[1].set_ylabel('y distance [mm]')
+    ax[1].legend()
     # ax.set_title("slice=" + str(ax.index))
     fig.suptitle('Merged volume', fontsize=16)
 
 
 
-
-
-    peaks,fig2 = peak_find(amp_peak)
+    peaks,peak_figs = peak_find(ampl_resamp,dx)
     minimize_junction(ampl_resamp,peaks, dx / 10)
 
 
 
 
-
-
-    return fig,fig2
+    return fig,peak_figs
 
 
 
@@ -473,9 +487,9 @@ def read_dicom3D(dirname,poption):
 
     multi_slice_viewer(ArrayDicom,dx,dy)
     if k==2:
-        merge_view_vert(ArrayDicom, dx, dy)
+        fig,peak_figs=merge_view_vert(ArrayDicom, dx, dy)
     else:
-        fig,fig2=merge_view_horz(ArrayDicom, dx, dy)
+        fig,peak_figs=merge_view_horz(ArrayDicom, dx, dy)
 
 
     with PdfPages('multipage_pdf.pdf') as pdf:
@@ -483,8 +497,11 @@ def read_dicom3D(dirname,poption):
         # plt.plot(amp_peak)
         # plt.plot(peaks, amp_peak[peaks], "x")
         # plt.hlines(*peaks_w[1:], color="C2")
+        txt = 'This is the title page'
+        fig.text(0.5, 0.5, txt, transform=fig.transFigure, size=24, ha="center")
         pdf.savefig(fig)
-        pdf.savefig(fig2)
+        for i in range(0,len(peak_figs)):
+            pdf.savefig(peak_figs[i])
         plt.close()
 
 
