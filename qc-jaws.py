@@ -13,6 +13,7 @@ from scipy.signal import savgol_filter
 from scipy.stats import linregress
 from scipy import signal
 from scipy.signal import find_peaks,peak_prominences,peak_widths
+import fitz
 
 # np.set_printoptions(threshold=np.nan)
 
@@ -93,53 +94,90 @@ def next_slice_axial(ax):
 
 
 
+#work here
+def minimize_junction(amplitude, peaks,peak_type,dx):
+    junctions_fig=[]
 
-def minimize_junction(amplitude, peaks,dx):
+    amp_prev=0
+    amp_filt_prev=0
+
+    fig = plt.figure(figsize=(10, 6))# create the plot
+
     for j in range(0, amplitude.shape[1]-1):
-        cumsum_prev = 1e6
-        # if j==1:
-        #     exit(0)
-        print('peak=',j,peaks[j])
-        amp_base_res = amplitude[:,j]
-        amp_overlay_res = amplitude[:,j+1]
-        for i in range(0,-38,-1):
-            x = np.linspace(0, 0 + (len(amp_base_res) * dx), len(amplitude), endpoint=False)  # definition of the distance axis
-            amp_overlay_res_roll=np.roll(amp_overlay_res,i)
+        print('j=', j)
+        amp_base_res = signal.savgol_filter(signal.resample(amplitude[:, j], 60), 21, 5)
+        for k in range(j + 1, amplitude.shape[1]):
+            amp_overlay_res = signal.savgol_filter(signal.resample(amplitude[:, k], 60), 21, 5)
+            peak1, _ = find_peaks(amp_base_res, prominence=5000)
+            peak2, _ = find_peaks(amp_overlay_res, prominence=5000)
+            print(k, peak1, peak2, abs(peak2 - peak1))
 
-            #amplitude is the vector to analyze +-500 samples from the center
-            amp_tot = ( amp_base_res[peaks[j] - 1000:peaks[j] + 1000] + amp_overlay_res_roll[peaks[j] - 1000:peaks[j] + 1000] )  #divided by 2 to normalize
-            xsel = x[peaks[j] - 1000:peaks[j] + 1000]
+            if abs(peak2 - peak1) < 18:  # if the two peaks are close together proceeed to analysis
+                cumsum_prev = 1e6
+                # if j==1:
+                #     exit(0)
+                print('peak=', j, peaks[j], peak_type[j])
+                amp_base_res = amplitude[:, j]
+                amp_overlay_res = amplitude[:, k]
 
-            amp_filt = running_mean(amp_tot,281)
-            cumsum=np.sum(np.abs(amp_tot - amp_filt))
-            # print(i,abs(i)*dx,cumsum,cumsum_prev)
+                if peak_type[j] == 0:
+                    inc = -1
+                else:
+                    inc = 1
+                for i in range(0, inc * 38, inc * 1):
+                    print('i', i)
+                    # for i in range(0, 1, 38):
+                    x = np.linspace(0, 0 + (len(amp_base_res) * dx), len(amplitude),
+                                    endpoint=False)  # definition of the distance axis
+                    amp_overlay_res_roll = np.roll(amp_overlay_res, i)
 
-            # plt.figure(figsize=(10, 6))
-            # plt.plot(amp_tot)
-            # plt.plot(amp_filt)
-            # plt.xlabel('x distance [mm]')
-            # plt.ylabel('amplitude')
-            # plt.title(str(i))
+                    # amplitude is the vector to analyze +-500 samples from the center
+                    amp_tot = (amp_base_res[peaks[j] - 1000:peaks[j] + 1000] + amp_overlay_res_roll[
+                                                                               peaks[j] - 1000:peaks[
+                                                                                                   j] + 1000])  # divided by 2 to normalize
+                    xsel = x[peaks[j] - 1000:peaks[j] + 1000]
 
+                    amp_filt = running_mean(amp_tot, 281)
+                    cumsum = np.sum(np.abs(amp_tot - amp_filt))
 
-            if cumsum>cumsum_prev: # then we went too far
-                print('peak=',j,'i=', i+1, "dx=", dx, "delta=", abs(i+1) * dx, "cumsum=", cumsum, "cumsum_prev=", cumsum_prev,'<-final')
-                plt.figure(figsize=(10, 6))
-                # plt.plot(-1*(amp_base_res+amp_overlay_res_roll))
-                plt.plot(-1 * (amp_prev)) #here we multiply by -1 just to flip the graph
-                plt.plot(-1*amp_filt_prev)
-                plt.xlabel('x distance [mm]')
-                plt.ylabel('amplitude')
-                plt.title('final')
+                    if cumsum > cumsum_prev:  # then we went too far
+                        print('peak=', j, 'i=', i + 1, "dx=", dx, "delta=", abs(i + 1) * dx, "cumsum=", cumsum,
+                              "cumsum_prev=", cumsum_prev, '<-final')
+                        # junctions_fig.append(plt.figure(figsize=(10, 6)))
+                        ax = fig.add_subplot(amplitude.shape[1] - 1, 1, j + 1)  # j+1 so the first graph is not zero
+
+                        # plt.plot(-1*(amp_base_res+amp_overlay_res_roll))
+                        ax.plot(amp_prev)
+                        ax.plot(amp_filt_prev)
+                        if j == 0:
+                            ax.set_title('Minimization result')
+                        if j == amplitude.shape[1] - 2:  # if we reach the final plot the add the x axis label
+                            ax.set_xlabel('x distance [mm]')
+
+                        ax.set_ylabel('amplitude')
+                        ax.annotate('delta=' + str(abs(i - inc * 1) * dx) + ' mm', xy=(2, 1), xycoords='axes fraction',
+                                    xytext=(.35, .10))
+
+                        plt.show()
+                        # print(amp_prev)
+                        break
+                    else:
+                        print('i=', i, "dx=", dx, "delta=", abs(i) * dx, "cumsum=", cumsum, "cumsum_prev=", cumsum_prev)
+                        amp_prev = amp_tot
+                        amp_filt_prev = amp_filt
+                        cumsum_prev = cumsum
                 plt.show()
-                # print(amp_prev)
-                break
+
+
             else:
-                print('i=',i,"dx=", dx, "delta=", abs(i) * dx, "cumsum=", cumsum, "cumsum_prev=", cumsum_prev)
-                amp_prev=amp_tot
-                amp_filt_prev=amp_filt
-                cumsum_prev=cumsum
-        plt.show()
+                print(j, k, 'the data is not contiguous finding another curve in dataset')
+
+
+
+
+
+
+    return fig
 
 
 
@@ -154,32 +192,94 @@ def minimize_junction(amplitude, peaks,dx):
 # this subroutine aims to find the peaks
 def peak_find(ampl_resamp,dx):
     # print('type=',type(ampl_resamp),'shape=',ampl_resamp.shape[1])
-    peaks=np.zeros(ampl_resamp.shape[1]-1,dtype=int)
+    # peaks=np.zeros(ampl_resamp.shape[1]-1,dtype=int)
     peak_figs=[]
+    peaks=[]
+    peak_type=[]
+    print('number of curves=',ampl_resamp.shape[1])
     for j in range(0, ampl_resamp.shape[1]-1):
         print('j=',j)
-        amp_base_res = ampl_resamp[:,j]
-        amp_overlay_res = ampl_resamp[:,j+1]
-        amp_peak=(amp_base_res+amp_overlay_res)/2
-        peak, _ = find_peaks(amp_peak, prominence=500)
-        peaks[j]=peak[0]
-        x = np.linspace(0, 0 + (len(amp_peak) * dx/10), len(amp_peak), endpoint=False)  # definition of the distance axis
-        fig=plt.figure()
-        plt.plot(x,amp_peak,label='Total amplitude profile')
-        plt.plot(x[peak],amp_peak[peak],"x",label='Peaks detected')
-        plt.ylabel('amplitude [a.u.]')
-        plt.xlabel('distance [mm]')
-        plt.legend()
-        fig.suptitle('Junctions', fontsize=16)
-        peak_figs.append(fig)
+        amp_base_res = signal.savgol_filter(signal.resample(ampl_resamp[:,j],60),21,5)
+        for k in range(j+1,ampl_resamp.shape[1]):
+            amp_overlay_res = signal.savgol_filter(signal.resample(ampl_resamp[:,k],60),21,5)
+            peak1, _ = find_peaks(amp_base_res, prominence=5000)
+            peak2, _ = find_peaks(amp_overlay_res, prominence=5000)
+            print(k,peak1,peak2,abs(peak2-peak1))
+            # plt.figure()
+            # plt.plot(amp_base_res)
+            # plt.plot(amp_overlay_res)
+            # plt.show()
 
-    plt.show()
-    # print('peaks=',peaks)
-    # exit(0)
+            if abs(peak2-peak1)<18:  # if the two peaks are separated the two fields are not adjacent.
+                amp_peak = (ampl_resamp[:,j] + ampl_resamp[:,k]) / 2
+                x = np.linspace(0, 0 + (len(amp_peak) * dx / 10), len(amp_peak),
+                                endpoint=False)  # definition of the distance axis
+                plt.figure()
+                plt.plot(amp_peak)
+                plt.show()
+
+                # #now we need to find if we are going to find a peak or a through
+                # while True:  # example of infinite loops using try and except to catch only numbers
+                #     line = input('Is there a peak or through in the amplitude profile [peak(p)/through(t)]> ')
+                #     try:
+                #         ##        if line == 'done':
+                #         ##            break
+                #         poption = str(line.lower())
+                #         if poption.startswith(('p', 'pe', 'peak', 't', 'thro', 'through')):
+                #             break
+                #
+                #     except:
+                #         print('Please enter a valid option:')
+                # if poption.startswith(('p', 'pe', 'peak')):
+                #     peak, _ = find_peaks(amp_peak, prominence=2000)
+                # elif poption.startswith(('t', 'thro', 'through')):
+                #     peak, _ = find_peaks(-amp_peak, prominence=2000)
+                peak, _ = find_peaks(amp_peak, prominence=2000)
+                if len(peak)!=1:
+                    peak, _ = find_peaks(-amp_peak, prominence=2000)
+                    peaks.append(peak[0])
+                    peak_type.append(0)
+                else:
+                    peak_type.append(1)
+                    peaks.append(peak[0])
+
+                print('peak=', j, peaks)
+                print(j,k,'the data is contiguous')
+                fig = plt.figure(figsize=(10, 6))
+                plt.plot(x, amp_peak, label='Total amplitude profile')
+                plt.plot(x[peak], amp_peak[peak], "x", label='Peaks detected')
+                plt.ylabel('amplitude [a.u.]')
+                plt.xlabel('distance [mm]')
+                plt.legend()
+                fig.suptitle('Junctions', fontsize=16)
+                peak_figs.append(fig)
+                plt.show()
+
+            else:
+                print(j,k,'the data is not contiguous finding another curve in dataset')
 
 
-    print('peaks',peaks)
-    return peaks, peak_figs
+
+
+
+    print('peaks=',peaks)
+    return peaks, peak_type, peak_figs
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -216,7 +316,7 @@ def merge_view_vert(volume,dx,dy):
     for slice in tqdm(range(0,volume.shape[2])):
         merge_vol = merge_vol + volume[:, :, slice]
         amplitude[:,slice]=volume[int(volume.shape[0] / 2), :, slice]
-        ampl_resamp[:,slice]=-1*signal.resample(amplitude[:,slice],int(len(amplitude))*10) #resampling the amplitude vector
+        ampl_resamp[:,slice]=signal.resample(amplitude[:,slice],int(len(amplitude))*10) #resampling the amplitude vector
         amp_peak=amp_peak+ampl_resamp[:,slice]/volume.shape[2]
 
 
@@ -246,11 +346,27 @@ def merge_view_vert(volume,dx,dy):
 
 
 
-    peaks,peak_figs = peak_find(ampl_resamp,dx)
-    minimize_junction(ampl_resamp,peaks, dx / 10)
+    peaks, peak_type,peak_figs = peak_find(ampl_resamp,dx)
+    junctions_figs=minimize_junction(ampl_resamp,peaks,peak_type, dx / 10)
 
 
-    return fig, peak_figs
+    return fig, peak_figs, junctions_figs
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -327,16 +443,13 @@ def merge_view_horz(volume,dx,dy):
     # ax.set_title("slice=" + str(ax.index))
     fig.suptitle('Merged volume', fontsize=16)
 
-
-
-    peaks,peak_figs = peak_find(ampl_resamp,dx)
-    minimize_junction(ampl_resamp,peaks, dx / 10)
+    peaks, peak_type,peak_figs = peak_find(ampl_resamp,dx)
+    junction_figs = minimize_junction(ampl_resamp,peaks,peak_type, dx / 10)
 
 
 
 
-    return fig,peak_figs
-
+    return fig,peak_figs, junction_figs
 
 
 
@@ -370,6 +483,158 @@ def merge_view_horz(volume,dx,dy):
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#this subroutine will merge the 4 jaws and analyze the two upper and two lower pairs
+#each jaw is 6cm in length (60mm)
+def merge_view_filtrot(volume,dx,dy):
+
+
+
+    # creating merged volume
+    merge_vol = np.zeros((volume.shape[0], volume.shape[1]))
+
+    # creating vector for processing along cols (one row)
+    amplitude = np.zeros((volume.shape[0],volume.shape[2]))  # 1 if it is vertical 0 if the bars are horizontal
+
+    x = np.linspace(0, 0 + (volume.shape[0] * dy), volume.shape[0], endpoint=False)  # definition of the distance axis
+    # x = np.arange(0,) #definition of the distance axis
+
+    # merging the two images together
+    ampl_resamp = np.zeros(((volume.shape[0]) * 10, volume.shape[2]))
+    amp_peak = np.zeros((volume.shape[0]) * 10)
+
+
+    for slice in tqdm(range(0, volume.shape[2])):
+        merge_vol = merge_vol + volume[:, :, slice]
+        amplitude[:, slice] = volume[:,int(volume.shape[1] / 2), slice]
+        ampl_resamp[:, slice] = signal.resample(amplitude[:, slice], int(len(amplitude)) * 10)  # resampling the amplitude vector
+        amp_peak = amp_peak + ampl_resamp[:, slice] / volume.shape[2]
+
+
+    fig, ax = plt.subplots(nrows=2, squeeze=True, sharey=True, figsize=(6,8))
+
+
+    extent = (0, 0 + (volume.shape[1] * dx),
+              0, 0 + (volume.shape[0] * dy))
+
+    print(len(x), merge_vol.shape)
+    ax[0].imshow(merge_vol, extent=extent, aspect='auto')
+    # ax[0].set_aspect('equal', 'box')
+    ax[0].set_xlabel('x distance [mm]')
+    ax[0].set_ylabel('y distance [mm]')
+
+    ax[1].plot(amplitude,x,label='Amplitude profile')
+    # ax[1].set_xlabel('x distance [mm]')
+    # ax[1].set_ylabel('amplitude')
+    ax[1].set_xlabel('amplitude')
+    ax[1].set_ylabel('y distance [mm]')
+    ax[1].legend()
+    # ax.set_title("slice=" + str(ax.index))
+    fig.suptitle('Merged volume', fontsize=16)
+
+    peaks, peak_type,peak_figs = peak_find(ampl_resamp,dx)
+    junction_figs = minimize_junction(ampl_resamp,peaks,peak_type, dx / 10)
+
+
+
+
+    return fig,peak_figs, junction_figs
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# this routine anlyzes the volume and autodetect what type of analysis to carry on (x, Y, Field Rot)
+def folder_analyze(volume):
+    print(volume.shape)
+
+    for slice in range(0,volume.shape[2]):
+        # plt.figure()
+        # plt.imshow(volume[:,:,slice])
+        # plt.show()
+        stack1 = np.sum(volume[:,:,slice],axis=0)
+        maxstack1= np.max(stack1)
+
+        stack2 = np.sum(volume[:,:,slice],axis=1)
+        maxstack2= np.max(stack2)
+
+        if maxstack2/maxstack1>1.5:
+            return 2
+        elif maxstack2/maxstack1<0.5:
+            return 1
+        else:
+            return 3
 
 
 
@@ -450,6 +715,7 @@ def read_dicom3D(dirname,poption):
     for subdir, dirs, files in os.walk(dirname):
         k = 0
         for file in tqdm(sorted(files)):
+            print('filename=',file)
             if poption.startswith(('y', 'yeah', 'yes')):
                 subprocess.call(["gdcmconv", "-w", dirname + file, os.path.splitext(dirname + file)[0] + "_decomp" + ".dcm"])
                 dataset = pydicom.dcmread(os.path.splitext(dirname + file)[0] + "_decomp" + ".dcm")
@@ -457,10 +723,11 @@ def read_dicom3D(dirname,poption):
                     ArrayDicom = np.zeros((dataset.Rows, dataset.Columns), dtype=dataset.pixel_array.dtype)
                     ArrayDicom = np.dstack((ArrayDicom, dataset.pixel_array))
                     # print("slice thickness [mm]=",dataset.SliceThickness)
-                    print("pixel spacing row [mm]=", dataset.ImagePlanePixelSpacing[0])
-                    print("pixel spacing col [mm]=", dataset.ImagePlanePixelSpacing[1])
-                    dx=dataset.ImagePlanePixelSpacing[0]
-                    dy=dataset.ImagePlanePixelSpacing[1]
+                    SID=dataset.RTImageSID
+                    dx=1/(SID*(1/dataset.ImagePlanePixelSpacing[0])/1000)
+                    dy=1/(SID*(1/dataset.ImagePlanePixelSpacing[1])/1000)
+                    print("pixel spacing row [mm]=", dx)
+                    print("pixel spacing col [mm]=", dy)
                 else:
                     ArrayDicom=np.dstack((ArrayDicom, dataset.pixel_array))
             elif poption.startswith(('n', 'no', 'nope')):
@@ -469,14 +736,16 @@ def read_dicom3D(dirname,poption):
                     ArrayDicom = np.zeros((dataset.Rows,dataset.Columns,0), dtype=dataset.pixel_array.dtype)
                     ArrayDicom = np.dstack((ArrayDicom, dataset.pixel_array))
                     # print("slice thickness [mm]=", dataset.SliceThickness)
-                    print("pixel spacing row [mm]=", dataset.ImagePlanePixelSpacing[0])
-                    print("pixel spacing col [mm]=", dataset.ImagePlanePixelSpacing[1])
-                    dx=dataset.ImagePlanePixelSpacing[0]
-                    dy=dataset.ImagePlanePixelSpacing[1]
+                    SID = dataset.RTImageSID
+                    dx=1/(SID*(1/dataset.ImagePlanePixelSpacing[0])/1000)
+                    dy=1/(SID*(1/dataset.ImagePlanePixelSpacing[1])/1000)
+                    print("pixel spacing row [mm]=", dx)
+                    print("pixel spacing col [mm]=", dy)
                 else:
                     ArrayDicom = np.dstack((ArrayDicom, dataset.pixel_array))
             print(k)
             k=k+1
+
 
 
 
@@ -485,24 +754,46 @@ def read_dicom3D(dirname,poption):
     #spacing = np.array(list(spacing))
     print(type(ArrayDicom),np.shape(ArrayDicom))
 
+
+    doption = folder_analyze(ArrayDicom)
+
+
+
     multi_slice_viewer(ArrayDicom,dx,dy)
-    if k==2:
-        fig,peak_figs=merge_view_vert(ArrayDicom, dx, dy)
+    if doption==1:
+        fig,peak_figs, junctions_figs=merge_view_vert(ArrayDicom, dx, dy)
+    elif doption==2:
+        fig,peak_figs,junctions_figs= merge_view_horz(ArrayDicom, dx, dy)
     else:
-        fig,peak_figs=merge_view_horz(ArrayDicom, dx, dy)
+        fig, peak_figs, junctions_figs = merge_view_filtrot(ArrayDicom, dx, dy)
 
 
     with PdfPages('multipage_pdf.pdf') as pdf:
-        # plt.figure()
-        # plt.plot(amp_peak)
-        # plt.plot(peaks, amp_peak[peaks], "x")
-        # plt.hlines(*peaks_w[1:], color="C2")
-        txt = 'This is the title page'
-        fig.text(0.5, 0.5, txt, transform=fig.transFigure, size=24, ha="center")
         pdf.savefig(fig)
         for i in range(0,len(peak_figs)):
             pdf.savefig(peak_figs[i])
+        # for j in range(0,len(junctions_figs)):
+        pdf.savefig(junctions_figs)
         plt.close()
+
+    # Uncomment for Linux machine
+    doc = fitz.open("/mnt/home/peter/Dropbox/PhDMedPhysi/scripts-medphys/multipage_pdf.pdf")  # open the PDF
+    rect = fitz.Rect(0, 0, 100, 32)  # where to put image: use upper left corner
+
+    for page in doc:
+        page.insertImage(rect, filename="/mnt/home/peter/Dropbox/PhDMedPhysi/scripts-medphys/ahs-logo.png")
+
+    doc.saveIncr()
+
+
+    # #Uncomment for Windows machine
+    # doc = fitz.open("E:\zDropbox\Dropbox\PhDMedPhysi\scripts-medphys\multipage_pdf.pdf")  # open the PDF
+    # rect = fitz.Rect(0, 0, 100, 32)  # where to put image: use upper left corner
+    #
+    # for page in doc:
+    #     page.insertImage(rect, filename="E:\zDropbox\Dropbox\PhDMedPhysi\scripts-medphys\\ahs-logo.png")
+    #
+    # doc.saveIncr()
 
 
     plt.show(block=True)
