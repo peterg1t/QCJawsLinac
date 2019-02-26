@@ -1,2 +1,4 @@
 # QCJawsLinac
-Tool for calculating jaws junction shifts for linear accelerators
+Tool for calculating jaws junction shifts for linear accelerators.
+The script opens every DICOM file in a given folder and creates a combined profile resulting from the superposition of the two or more fields. It then detects the peak/through formed by the gap/overlap of the fields. A window is then selected around this point and a Savitzky-Golay smoothing filter is then applied to the combined profile. This new curve is then used iteratively to minimize the profile created every time
+one of the profiles slide to close the gap or decrease the overlap. The profile will achieve it greatest level of homogeneity when the dosimetric penumbra of both fields are matched in space. The final result is the optimal calculation of the gap/overlap between the two profiles. The software generates a pdf file with a summary of all the results.
