@@ -96,6 +96,8 @@ def next_slice_axial(ax):
 
 #work here
 def minimize_junction(amplitude, peaks,peak_type,dx):
+    print('number of peaks=',peaks)
+    print('amplitude dimensions=', amplitude.shape[1])
     junctions_fig=[]
 
     amp_prev=0
@@ -103,20 +105,21 @@ def minimize_junction(amplitude, peaks,peak_type,dx):
 
     fig = plt.figure(figsize=(10, 6))# create the plot
 
+    kk = 1  # counter for figure generation
     for j in range(0, amplitude.shape[1]-1):
-        print('j=', j)
-        amp_base_res = signal.savgol_filter(signal.resample(amplitude[:, j], 60), 21, 5)
-        for k in range(j + 1, amplitude.shape[1]):
+        for k in range(j + 1, amplitude.shape[1]): #looping through remaining images
+            amp_base_res = signal.savgol_filter(signal.resample(amplitude[:, j], 60), 21, 5)
             amp_overlay_res = signal.savgol_filter(signal.resample(amplitude[:, k], 60), 21, 5)
             peak1, _ = find_peaks(amp_base_res, prominence=5000)
             peak2, _ = find_peaks(amp_overlay_res, prominence=5000)
-            print(k, peak1, peak2, abs(peak2 - peak1))
+            print('peak1,peak2,diff', peak1, peak2, abs(peak2 - peak1))
 
             if abs(peak2 - peak1) < 18:  # if the two peaks are close together proceeed to analysis
+                print(j, k, 'the data is contiguous... analizing', )
                 cumsum_prev = 1e6
                 # if j==1:
                 #     exit(0)
-                print('peak=', j, peaks[j], peak_type[j])
+                # print('peak=', j, peaks[j], peak_type[j])
                 amp_base_res = amplitude[:, j]
                 amp_overlay_res = amplitude[:, k]
 
@@ -125,7 +128,7 @@ def minimize_junction(amplitude, peaks,peak_type,dx):
                 else:
                     inc = 1
                 for i in range(0, inc * 38, inc * 1):
-                    print('i', i)
+                    # print('i', i)
                     # for i in range(0, 1, 38):
                     x = np.linspace(0, 0 + (len(amp_base_res) * dx), len(amplitude),
                                     endpoint=False)  # definition of the distance axis
@@ -141,36 +144,42 @@ def minimize_junction(amplitude, peaks,peak_type,dx):
                     cumsum = np.sum(np.abs(amp_tot - amp_filt))
 
                     if cumsum > cumsum_prev:  # then we went too far
-                        print('peak=', j, 'i=', i + 1, "dx=", dx, "delta=", abs(i + 1) * dx, "cumsum=", cumsum,
-                              "cumsum_prev=", cumsum_prev, '<-final')
+                        # print('peak=', j, 'i=', i + 1, "dx=", dx, "delta=", abs(i + 1) * dx, "cumsum=", cumsum,
+                        #       "cumsum_prev=", cumsum_prev, '<-final')
                         # junctions_fig.append(plt.figure(figsize=(10, 6)))
-                        ax = fig.add_subplot(amplitude.shape[1] - 1, 1, j + 1)  # j+1 so the first graph is not zero
+                        ax = fig.add_subplot(amplitude.shape[1] - 1, 1, kk)
 
                         # plt.plot(-1*(amp_base_res+amp_overlay_res_roll))
                         ax.plot(amp_prev)
                         ax.plot(amp_filt_prev)
-                        if j == 0:
+                        if kk == 1:
                             ax.set_title('Minimization result')
-                        if j == amplitude.shape[1] - 2:  # if we reach the final plot the add the x axis label
+                        if kk == amplitude.shape[1] - 1:  # if we reach the final plot the add the x axis label
                             ax.set_xlabel('x distance [mm]')
 
                         ax.set_ylabel('amplitude')
                         ax.annotate('delta=' + str(abs(i - inc * 1) * dx) + ' mm', xy=(2, 1), xycoords='axes fraction',
                                     xytext=(.35, .10))
 
-                        plt.show()
-                        # print(amp_prev)
+                        # plt.show()
+
+                        kk = kk + 1
                         break
                     else:
-                        print('i=', i, "dx=", dx, "delta=", abs(i) * dx, "cumsum=", cumsum, "cumsum_prev=", cumsum_prev)
                         amp_prev = amp_tot
                         amp_filt_prev = amp_filt
                         cumsum_prev = cumsum
-                plt.show()
+                        # print('i=', i, "dx=", dx, "delta=", abs(i) * dx, "cumsum=", cumsum, "cumsum_prev=", cumsum_prev)
+
+                # plt.show()
 
 
             else:
                 print(j, k, 'the data is not contiguous finding another curve in dataset')
+
+
+
+
 
 
 
@@ -204,7 +213,7 @@ def peak_find(ampl_resamp,dx):
             amp_overlay_res = signal.savgol_filter(signal.resample(ampl_resamp[:,k],60),21,5)
             peak1, _ = find_peaks(amp_base_res, prominence=5000)
             peak2, _ = find_peaks(amp_overlay_res, prominence=5000)
-            print(k,peak1,peak2,abs(peak2-peak1))
+            print('peak find',peak1,peak2,abs(peak2-peak1))
             # plt.figure()
             # plt.plot(amp_base_res)
             # plt.plot(amp_overlay_res)
@@ -214,9 +223,9 @@ def peak_find(ampl_resamp,dx):
                 amp_peak = (ampl_resamp[:,j] + ampl_resamp[:,k]) / 2
                 x = np.linspace(0, 0 + (len(amp_peak) * dx / 10), len(amp_peak),
                                 endpoint=False)  # definition of the distance axis
-                plt.figure()
-                plt.plot(amp_peak)
-                plt.show()
+                # plt.figure()
+                # plt.plot(amp_peak)
+                # plt.show()
 
                 # #now we need to find if we are going to find a peak or a through
                 # while True:  # example of infinite loops using try and except to catch only numbers
@@ -253,7 +262,7 @@ def peak_find(ampl_resamp,dx):
                 plt.legend()
                 fig.suptitle('Junctions', fontsize=16)
                 peak_figs.append(fig)
-                plt.show()
+                # plt.show()
 
             else:
                 print(j,k,'the data is not contiguous finding another curve in dataset')
@@ -669,6 +678,7 @@ def folder_analyze(volume):
 
 
 
+
 #the data loaded is not in HU we need to rescale it
 # def get_pixels_hu(scans):
 #     image = np.stack([s.pixel_array for s in scans])
@@ -756,14 +766,18 @@ def read_dicom3D(dirname,poption):
 
 
     doption = folder_analyze(ArrayDicom)
+    # print('doption=',doption)
+    # exit(0)
 
 
 
     multi_slice_viewer(ArrayDicom,dx,dy)
     if doption==1:
         fig,peak_figs, junctions_figs=merge_view_vert(ArrayDicom, dx, dy)
+
     elif doption==2:
         fig,peak_figs,junctions_figs= merge_view_horz(ArrayDicom, dx, dy)
+        # print('peak_figs********************************************************=', len(peak_figs),peak_figs)
     else:
         fig, peak_figs, junctions_figs = merge_view_filtrot(ArrayDicom, dx, dy)
 
@@ -776,27 +790,30 @@ def read_dicom3D(dirname,poption):
         pdf.savefig(junctions_figs)
         plt.close()
 
-    # Uncomment for Linux machine
-    doc = fitz.open("/mnt/home/peter/Dropbox/PhDMedPhysi/scripts-medphys/multipage_pdf.pdf")  # open the PDF
-    rect = fitz.Rect(0, 0, 100, 32)  # where to put image: use upper left corner
-
-    for page in doc:
-        page.insertImage(rect, filename="/mnt/home/peter/Dropbox/PhDMedPhysi/scripts-medphys/ahs-logo.png")
-
-    doc.saveIncr()
 
 
-    # #Uncomment for Windows machine
-    # doc = fitz.open("E:\zDropbox\Dropbox\PhDMedPhysi\scripts-medphys\multipage_pdf.pdf")  # open the PDF
-    # rect = fitz.Rect(0, 0, 100, 32)  # where to put image: use upper left corner
-    #
-    # for page in doc:
-    #     page.insertImage(rect, filename="E:\zDropbox\Dropbox\PhDMedPhysi\scripts-medphys\\ahs-logo.png")
-    #
-    # doc.saveIncr()
+    if sys.platform=='linux':
+        # Uncomment for Linux machine
+        doc = fitz.open("/mnt/home/peter/Dropbox/PhDMedPhysi/scripts-medphys/multipage_pdf.pdf")  # open the PDF
+        rect = fitz.Rect(0, 0, 100, 32)  # where to put image: use upper left corner
+
+        for page in doc:
+            page.insertImage(rect, filename="/mnt/home/peter/Dropbox/PhDMedPhysi/scripts-medphys/ahs-logo.png")
+
+        doc.saveIncr()
+
+    elif sys.platform == 'windows':
+        # Uncomment for Windows machine
+        doc = fitz.open("E:\zDropbox\Dropbox\PhDMedPhysi\scripts-medphys\multipage_pdf.pdf")  # open the PDF
+        rect = fitz.Rect(0, 0, 100, 32)  # where to put image: use upper left corner
+
+        for page in doc:
+            page.insertImage(rect, filename="E:\zDropbox\Dropbox\PhDMedPhysi\scripts-medphys\\ahs-logo.png")
+
+        doc.saveIncr()
 
 
-    plt.show(block=True)
+    # plt.show(block=True)  #this shows all the figures!! (most important plt.show)
 
 
 
