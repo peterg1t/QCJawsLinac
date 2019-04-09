@@ -17,6 +17,8 @@
 #   Example usage: python qc-jaws "/folder/"
 #
 #   Author: Pedro Martinez
+#   pedro.enrique.83@gmail.com
+#   5877000722
 #   Date:2019-04-09
 #
 ###########################################################################################
