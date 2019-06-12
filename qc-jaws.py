@@ -148,12 +148,12 @@ def minimize_junction_Y(amplitude, peaks, peak_type, dx):
             peak2, _ = find_peaks(amp_overlay_res, prominence=0.5)
             print('JY,peak1,peak2,diff', peak1, peak2, abs(peak2 - peak1),peaks)
 
-            plt.figure()
-            plt.plot(amp_base_res)
-            plt.plot(amp_overlay_res)
-            # amp_peak = (ampl_resamp[:, j] + ampl_resamp[:, k])
-            # plt.plot(amp_peak)
-            plt.show()
+            # plt.figure()
+            # plt.plot(amp_base_res)
+            # plt.plot(amp_overlay_res)
+            # # amp_peak = (ampl_resamp[:, j] + ampl_resamp[:, k])
+            # # plt.plot(amp_peak)
+            # plt.show()
 
 
             if abs(peak2 - peak1) < 2500:  # if the two peaks are close together proceeed to analysis
@@ -188,19 +188,19 @@ def minimize_junction_Y(amplitude, peaks, peak_type, dx):
                     # print(i,cumsum, cumsum_prev, inc)
 
                     if cumsum > cumsum_prev:  # then we went too far
-                        # print('peak=', j, 'i=', i + 1, "dx=", dx, "delta=", abs(i + 1) * dx, "cumsum=", cumsum,"cumsum_prev=", cumsum_prev, '<-final')
-                        # fig.append(plt.figure(figsize=(10, 6)))
-                        ax = fig.add_subplot(amplitude.shape[1] - 1, 1, kk)
-                        ax.plot(amp_prev)
-                        ax.plot(amp_filt_prev)
-                        if kk == 1:
-                            ax.set_title('Minimization result',fontsize=16)
-                        if kk == amplitude.shape[1] - 1:  # if we reach the final plot the add the x axis label
-                            ax.set_xlabel('distance [mm]')
-
-                        ax.set_ylabel('amplitude')
-                        ax.annotate('delta=' + str(abs(i - inc * 1) * dx) + ' mm', xy=(2, 1), xycoords='axes fraction',
-                                    xytext=(.35, .10))
+                        # # print('peak=', j, 'i=', i + 1, "dx=", dx, "delta=", abs(i + 1) * dx, "cumsum=", cumsum,"cumsum_prev=", cumsum_prev, '<-final')
+                        # # fig.append(plt.figure(figsize=(10, 6)))
+                        # ax = fig.add_subplot(amplitude.shape[1] - 1, 1, kk)
+                        # ax.plot(amp_prev)
+                        # ax.plot(amp_filt_prev)
+                        # if kk == 1:
+                        #     ax.set_title('Minimization result',fontsize=16)
+                        # if kk == amplitude.shape[1] - 1:  # if we reach the final plot the add the x axis label
+                        #     ax.set_xlabel('distance [mm]')
+                        #
+                        # ax.set_ylabel('amplitude')
+                        # ax.annotate('delta=' + str(abs(i - inc * 1) * dx) + ' mm', xy=(2, 1), xycoords='axes fraction',
+                        #             xytext=(.35, .10))
 
                         # plt.show()
 
@@ -212,7 +212,21 @@ def minimize_junction_Y(amplitude, peaks, peak_type, dx):
                         cumsum_prev = cumsum
                         # print('i=', i, "dx=", dx, "delta=", abs(i) * dx, "cumsum=", cumsum, "cumsum_prev=", cumsum_prev)
 
-                # plt.show()
+                ax = fig.add_subplot(amplitude.shape[1] - 1, 1, kk)
+                ax.plot(amp_prev)
+                ax.plot(amp_filt_prev)
+                if kk == 1:
+                    ax.set_title('Minimization result', fontsize=16)
+                if kk == amplitude.shape[1] - 1:  # if we reach the final plot the add the x axis label
+                    ax.set_xlabel('distance [mm]')
+
+                ax.set_ylabel('amplitude')
+                if peaks[kk-1]!=0:
+                    ax.annotate('delta=' + str(abs(i - inc * 1) * dx) + ' mm', xy=(2, 1), xycoords='axes fraction',
+                            xytext=(.35, .10))
+                else:
+                    ax.annotate('delta= 0 mm (NO PEAK FOUND)', xy=(2, 1), xycoords='axes fraction',
+                                xytext=(.35, .10))
 
 
             else:
