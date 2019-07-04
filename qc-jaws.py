@@ -43,7 +43,7 @@ from scipy.signal import savgol_filter
 from scipy.stats import linregress
 from scipy import signal
 from scipy.signal import find_peaks, peak_prominences, peak_widths
-import fitz
+
 
 
 # np.set_printoptions(threshold=np.nan)
@@ -1306,117 +1306,6 @@ def read_dicom3D(dirname, poption,ioption):
             pdf.savefig(junctions_figs[i])
 
         plt.close()
-
-
-
-    # if doption == 1:
-    #     fig, peak_figs, junctions_figs = merge_view_vert(ArrayDicom, dx, dy)
-    #
-    #     with PdfPages(dirname+'jaws_X_report.pdf') as pdf:
-    #         pdf.savefig(fig)
-    #         for i in range(0, len(peak_figs)):
-    #             pdf.savefig(peak_figs[i])
-    #
-    #         for i in range(0, len(junctions_figs)):
-    #             pdf.savefig(junctions_figs[i])
-    #
-    #         plt.close()
-
-        # # if the platform is linux save the file in this folder
-        # if sys.platform == 'linux':
-        #     doc = fitz.open(dirname+'jaws_X_report.pdf')  # open the PDF
-        #     rect = fitz.Rect(0, 0, 100, 32)  # where to put image: use upper left corner
-        #
-        #     for page in doc:
-        #         page.insertImage(rect, filename="/mnt/home/peter/Dropbox/PhDMedPhysi/scripts-medphys/ahs-logo.png")
-        #
-        #     doc.saveIncr()
-        #
-        # # if the platform is windows save the file in this folder
-        # elif sys.platform == 'windows':
-        #
-        #     doc = fitz.open(dirname+'jaws_X_report.pdf')  # open the PDF
-        #     rect = fitz.Rect(0, 0, 100, 32)  # where to put image: use upper left corner
-        #
-        #     for page in doc:
-        #         page.insertImage(rect, filename="E:\zDropbox\Dropbox\PhDMedPhysi\scripts-medphys\\ahs-logo.png")
-        #
-        #     doc.saveIncr()
-        #
-        # # plt.show(block=True)  #this shows all the figures!! (most important plt.show)
-
-    # elif doption == 2:
-    #     fig, peak_figs, junctions_figs = merge_view_horz(ArrayDicom, dx, dy)
-    #     # print('peak_figs********************************************************=', len(peak_figs),peak_figs)
-    #     with PdfPages(dirname+'jaws_Y_report.pdf') as pdf:
-    #         pdf.savefig(fig)
-    #         for i in range(0, len(peak_figs)):
-    #             pdf.savefig(peak_figs[i])
-    #
-    #         for i in range(0, len(junctions_figs)):
-    #             pdf.savefig(junctions_figs[i])
-    #
-    #         plt.close()
-
-        # # if the platform is linux save the file in this folder
-        # if sys.platform == 'linux':
-        #     doc = fitz.open(dirname+'jaws_X_report.pdf')  # open the PDF
-        #     rect = fitz.Rect(0, 0, 100, 32)  # where to put image: use upper left corner
-        #
-        #     for page in doc:
-        #         page.insertImage(rect, filename="/mnt/home/peter/Dropbox/PhDMedPhysi/scripts-medphys/ahs-logo.png")
-        #
-        #     doc.saveIncr()
-        #
-        # # if the platform is windows save the file in this folder
-        # elif sys.platform == 'windows':
-        #
-        #     doc = fitz.open(dirname+'jaws_X_report.pdf')  # open the PDF
-        #     rect = fitz.Rect(0, 0, 100, 32)  # where to put image: use upper left corner
-        #
-        #     for page in doc:
-        #         page.insertImage(rect, filename="E:\zDropbox\Dropbox\PhDMedPhysi\scripts-medphys\\ahs-logo.png")
-        #
-        #     doc.saveIncr()
-        #
-        # # plt.show(block=True)  #this shows all the figures!! (most important plt.show)
-
-
-    # else:
-    #     fig, peak_figs, junctions_figs = merge_view_filtrot(ArrayDicom, dx, dy)
-    #
-    #     with PdfPages(dirname+'jaws_FR_report.pdf') as pdf:
-    #         pdf.savefig(fig)
-    #         for i in range(0, len(peak_figs)):
-    #             pdf.savefig(peak_figs[i])
-    #
-    #         for i in range(0, len(junctions_figs)):
-    #             pdf.savefig(junctions_figs[i])
-    #
-    #         plt.close()
-
-        # # if the platform is linux save the file in this folder
-        # if sys.platform == 'linux':
-        #     doc = fitz.open(dirname+'jaws_X_report.pdf')  # open the PDF
-        #     rect = fitz.Rect(0, 0, 100, 32)  # where to put image: use upper left corner
-        #
-        #     for page in doc:
-        #         page.insertImage(rect, filename="/mnt/home/peter/Dropbox/PhDMedPhysi/scripts-medphys/ahs-logo.png")
-        #
-        #     doc.saveIncr()
-        #
-        # # if the platform is windows save the file in this folder
-        # elif sys.platform == 'windows':
-        #
-        #     doc = fitz.open(dirname+'jaws_X_report.pdf')  # open the PDF
-        #     rect = fitz.Rect(0, 0, 100, 32)  # where to put image: use upper left corner
-        #
-        #     for page in doc:
-        #         page.insertImage(rect, filename="E:\zDropbox\Dropbox\PhDMedPhysi\scripts-medphys\\ahs-logo.png")
-        #
-        #     doc.saveIncr()
-        #
-        # # plt.show(block=True)  #this shows all the figures!! (most important plt.show)
 
 
 
