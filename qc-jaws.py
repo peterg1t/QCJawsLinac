@@ -1212,7 +1212,8 @@ def folder_analyze(volume):
 #     return image, new_spacing
 
 
-def read_dicom3D(dirname, poption,ioption):
+# def read_dicom3D(dirname, poption,ioption):
+def read_dicom3D(dirname, ioption):
     slice = 0
     # lstFilesDCM = [] #empty list to store dicom files
     for subdir, dirs, files in os.walk(dirname):
@@ -1220,36 +1221,36 @@ def read_dicom3D(dirname, poption,ioption):
         for file in tqdm(sorted(files)):
             print('filename=', file)
             if os.path.splitext(file)[1]=='.dcm':
-                if poption.startswith(('y', 'yeah', 'yes')):
-                    subprocess.call(
-                        ["gdcmconv", "-w", dirname + file, os.path.splitext(dirname + file)[0] + "_decomp" + ".dcm"])
-                    dataset = pydicom.dcmread(os.path.splitext(dirname + file)[0] + "_decomp" + ".dcm")
-                    if k == 0:
-                        ArrayDicom = np.zeros((dataset.Rows, dataset.Columns), dtype=dataset.pixel_array.dtype)
-                        ArrayDicom = np.dstack((ArrayDicom, dataset.pixel_array))
-                        # print("slice thickness [mm]=",dataset.SliceThickness)
-                        SID = dataset.RTImageSID
-                        dx = 1 / (SID * (1 / dataset.ImagePlanePixelSpacing[0]) / 1000)
-                        dy = 1 / (SID * (1 / dataset.ImagePlanePixelSpacing[1]) / 1000)
-                        print("pixel spacing row [mm]=", dx)
-                        print("pixel spacing col [mm]=", dy)
-                    else:
-                        ArrayDicom = np.dstack((ArrayDicom, dataset.pixel_array))
-                elif poption.startswith(('n', 'no', 'nope')):
-                    dataset = pydicom.dcmread(dirname + file)
-                    if k == 0:
-                        ArrayDicom = np.zeros((dataset.Rows, dataset.Columns, 0), dtype=dataset.pixel_array.dtype)
-                        ArrayDicom = np.dstack((ArrayDicom, dataset.pixel_array))
-                        # print("slice thickness [mm]=", dataset.SliceThickness)
-                        SID = dataset.RTImageSID
-                        dx = 1 / (SID * (1 / dataset.ImagePlanePixelSpacing[0]) / 1000)
-                        dy = 1 / (SID * (1 / dataset.ImagePlanePixelSpacing[1]) / 1000)
-                        print("pixel spacing row [mm]=", dx)
-                        print("pixel spacing col [mm]=", dy)
-                    else:
-                        ArrayDicom = np.dstack((ArrayDicom, dataset.pixel_array))
-                print(k)
-                k = k + 1
+                # if poption.startswith(('y', 'yeah', 'yes')):
+                #     subprocess.call(
+                #         ["gdcmconv", "-w", dirname + file, os.path.splitext(dirname + file)[0] + "_decomp" + ".dcm"])
+                #     dataset = pydicom.dcmread(os.path.splitext(dirname + file)[0] + "_decomp" + ".dcm")
+                #     if k == 0:
+                #         ArrayDicom = np.zeros((dataset.Rows, dataset.Columns), dtype=dataset.pixel_array.dtype)
+                #         ArrayDicom = np.dstack((ArrayDicom, dataset.pixel_array))
+                #         # print("slice thickness [mm]=",dataset.SliceThickness)
+                #         SID = dataset.RTImageSID
+                #         dx = 1 / (SID * (1 / dataset.ImagePlanePixelSpacing[0]) / 1000)
+                #         dy = 1 / (SID * (1 / dataset.ImagePlanePixelSpacing[1]) / 1000)
+                #         print("pixel spacing row [mm]=", dx)
+                #         print("pixel spacing col [mm]=", dy)
+                #     else:
+                #         ArrayDicom = np.dstack((ArrayDicom, dataset.pixel_array))
+                # elif poption.startswith(('n', 'no', 'nope')):
+                dataset = pydicom.dcmread(dirname + file)
+                if k == 0:
+                    ArrayDicom = np.zeros((dataset.Rows, dataset.Columns, 0), dtype=dataset.pixel_array.dtype)
+                    ArrayDicom = np.dstack((ArrayDicom, dataset.pixel_array))
+                    # print("slice thickness [mm]=", dataset.SliceThickness)
+                    SID = dataset.RTImageSID
+                    dx = 1 / (SID * (1 / dataset.ImagePlanePixelSpacing[0]) / 1000)
+                    dy = 1 / (SID * (1 / dataset.ImagePlanePixelSpacing[1]) / 1000)
+                    print("pixel spacing row [mm]=", dx)
+                    print("pixel spacing col [mm]=", dy)
+                else:
+                    ArrayDicom = np.dstack((ArrayDicom, dataset.pixel_array))
+            print(k)
+            k = k + 1
 
     # we have loaded the image but the spacing is different in the x,y and z directions
     # spacing = map(float, ([scan[0].SliceThickness] + scan[0].PixelSpacing))
@@ -1353,19 +1354,19 @@ try:
 except:
     print('Please enter a valid filename')
     print("Use the following command to run this script")
-    print("python test_pydicom3D.py \"[dirname]\"")
+    print("python qc-jaws.py \"[dirname]\"")
 
-while True:  # example of infinite loops using try and except to catch only numbers
-    line = input('Are the files compressed [yes(y)/no(n)]> ')
-    try:
-        ##        if line == 'done':
-        ##            break
-        poption = str(line.lower())
-        if poption.startswith(('y', 'yeah', 'yes', 'n', 'no', 'nope')):
-            break
-
-    except:
-        print('Please enter a valid option:')
+# while True:
+#     line = input('Are the files compressed [yes(y)/no(n)]> ')
+#     try:
+#         ##        if line == 'done':
+#         ##            break
+#         poption = str(line.lower())
+#         if poption.startswith(('y', 'yeah', 'yes', 'n', 'no', 'nope')):
+#             break
+#
+#     except:
+#         print('Please enter a valid option:')
 
 
 while True:  # example of infinite loops using try and except to catch only numbers
@@ -1382,4 +1383,5 @@ while True:  # example of infinite loops using try and except to catch only numb
 
 
 
-read_dicom3D(dirname, poption, ioption)
+read_dicom3D(dirname, ioption)
+# read_dicom3D(dirname, poption, ioption)
