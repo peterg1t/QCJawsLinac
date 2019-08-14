@@ -828,18 +828,6 @@ def image_analyze(volume,ioption):
     rotfield = []
 
     if ioption.startswith(('y', 'yeah', 'yes')):
-        max_val=np.amax(volume)
-        volume = volume/max_val
-        min_val = np.amin(volume)
-        volume = volume - min_val
-        volume = (1 - volume) # inverting the range
-
-        min_val = np.amin(volume) #normalizing
-        volume=volume-min_val
-        volume=volume/(np.amax(volume))
-
-
-
         kx = 0
         ky = 0
         krot = 0
@@ -895,9 +883,6 @@ def image_analyze(volume,ioption):
 
 
     else:
-        min_val = np.amin(volume)
-        volume=volume-min_val
-        volume=volume/(np.amax(volume))
         kx=0
         ky = 0
         krot=0
@@ -1039,7 +1024,22 @@ def read_dicom3D(dirname, ioption):
                 dataset = pydicom.dcmread(dirname + file)
                 if k == 0:
                     ArrayDicom = np.zeros((dataset.Rows, dataset.Columns, 0), dtype=dataset.pixel_array.dtype)
-                    ArrayDicom = np.dstack((ArrayDicom, dataset.pixel_array))
+                    tmp_array=dataset.pixel_array
+                    if ioption.startswith(('y', 'yeah', 'yes')):
+                        max_val = np.amax(tmp_array)
+                        tmp_array = tmp_array / max_val
+                        min_val = np.amin(tmp_array)
+                        tmp_array = tmp_array - min_val
+                        tmp_array = (1 - tmp_array)  # inverting the range
+
+                        min_val = np.amin(tmp_array)  # normalizing
+                        tmp_array = tmp_array - min_val
+                        tmp_array = tmp_array / (np.amax(tmp_array))
+                    else:
+                        min_val = np.amin(tmp_array)
+                        tmp_array = tmp_array - min_val
+                        tmp_array = tmp_array / (np.amax(tmp_array))  # just normalize
+                    ArrayDicom = np.dstack((ArrayDicom, tmp_array))
                     # print("slice thickness [mm]=", dataset.SliceThickness)
                     SID = dataset.RTImageSID
                     dx = 1 / (SID * (1 / dataset.ImagePlanePixelSpacing[0]) / 1000)
@@ -1047,7 +1047,22 @@ def read_dicom3D(dirname, ioption):
                     print("pixel spacing row [mm]=", dx)
                     print("pixel spacing col [mm]=", dy)
                 else:
-                    ArrayDicom = np.dstack((ArrayDicom, dataset.pixel_array))
+                    tmp_array=dataset.pixel_array
+                    if ioption.startswith(('y', 'yeah', 'yes')):
+                        max_val = np.amax(tmp_array)
+                        tmp_array = tmp_array / max_val
+                        min_val = np.amin(tmp_array)
+                        tmp_array = tmp_array - min_val
+                        tmp_array = (1 - tmp_array)  # inverting the range
+
+                        min_val = np.amin(tmp_array)  # normalizing
+                        tmp_array = tmp_array - min_val
+                        tmp_array = tmp_array / (np.amax(tmp_array))
+                    else:
+                        min_val = np.amin(tmp_array)
+                        tmp_array = tmp_array - min_val
+                        tmp_array = tmp_array / (np.amax(tmp_array))  # just normalize
+                    ArrayDicom = np.dstack((ArrayDicom, tmp_array))
             k = k + 1
 
 
