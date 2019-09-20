@@ -771,9 +771,13 @@ def minimize_junction_Y(amplitude, peaks, peak_type, dx):
 
     fig = plt.figure(figsize=(10, 6))  # create the plot
 
-    kk = 1  # counter for figure generation
+    kk = 0  # counter for figure generation
+    print('amplitude.shape[1] - 1',amplitude.shape[1] - 1)
     for j in range(0, amplitude.shape[1] - 1):
+
+        print('j=',j)
         for k in range(j + 1, amplitude.shape[1]):  # looping through remaining images
+            print('k=',k)
             amp_base_res = signal.convolve(amplitude[:, j], amplitude[:, j], mode='full')
             amp_base_res = signal.resample(amp_base_res / np.amax(amp_base_res), int(np.ceil(len(amp_base_res) / 2)))
 
@@ -785,6 +789,7 @@ def minimize_junction_Y(amplitude, peaks, peak_type, dx):
 
 
             if abs(peak2 - peak1) < 2500:  # if the two peaks are close together proceeed to analysis
+                kk = kk + 1 #incrementing the figure generator
                 cumsum_prev = 1e7
                 if peak2<peak1:
                     amp_base_res = amplitude[:, k]
@@ -819,6 +824,7 @@ def minimize_junction_Y(amplitude, peaks, peak_type, dx):
                         amp_filt_prev = amp_filt
                         cumsum_prev = cumsum
 
+
                 ax = fig.add_subplot(amplitude.shape[1] - 1, 1, kk)
                 ax.plot(amp_prev)
                 ax.plot(amp_filt_prev)
@@ -826,7 +832,6 @@ def minimize_junction_Y(amplitude, peaks, peak_type, dx):
                     ax.set_title('Minimization result', fontsize=16)
                 if kk == amplitude.shape[1] - 1:  # if we reach the final plot the add the x axis label
                     ax.set_xlabel('distance [mm]')
-
                 ax.set_ylabel('amplitude')
                 if peaks[kk-1]!=0:
                     ax.annotate('delta=' + str(abs(i - inc * 1) * dx) + ' mm', xy=(2, 1), xycoords='axes fraction',
@@ -837,8 +842,10 @@ def minimize_junction_Y(amplitude, peaks, peak_type, dx):
 
 
             # else:
-                # print(j, k, 'the data is not contiguous finding another curve in dataset')
-        kk=kk+1
+            #     print(j, k, 'the data is not contiguous finding another curve in dataset')
+
+
+
 
 
     return fig
