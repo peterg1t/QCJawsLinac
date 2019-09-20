@@ -692,19 +692,12 @@
 ###########################################################################################
 
 import os
-import sys
-
-# sys.path.append('C:\Program Files\GDCM 2.8\lib')
 import pydicom
-from PIL import *
-import subprocess
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from tqdm import tqdm
 import numpy as np
-from scipy.signal import butter, filtfilt
-from scipy.signal import savgol_filter
-from scipy.stats import linregress
+import argparse
 from scipy import signal
 from scipy.signal import find_peaks, peak_prominences, peak_widths
 
@@ -1667,7 +1660,7 @@ def read_dicom3D(dirname, ioption):
     for subdir, dirs, files in os.walk(dirname):
         k = 0
         for file in tqdm(sorted(files)):
-            print('filename=', file)
+            # print('filename=', file)
             if os.path.splitext(file)[1]=='.dcm':
                 # if poption.startswith(('y', 'yeah', 'yes')):
                 #     subprocess.call(
@@ -1781,19 +1774,19 @@ def read_dicom3D(dirname, ioption):
 
 
 
-    # Normal mode:
-    print()
-    print("Directory folder.........:", dirname)
-    print("Storage type.....:", dataset.SOPClassUID)
-    print()
-
-    pat_name = dataset.PatientName
-    display_name = pat_name.family_name + ", " + pat_name.given_name
-    print("Patient's name...:", display_name)
-    print("Patient id.......:", dataset.PatientID)
-    print("Modality.........:", dataset.Modality)
-    print("Study Date.......:", dataset.StudyDate)
-    print("Gantry angle......", dataset.GantryAngle)
+    # # Normal mode:
+    # print()
+    # print("Directory folder.........:", dirname)
+    # print("Storage type.....:", dataset.SOPClassUID)
+    # print()
+    #
+    # pat_name = dataset.PatientName
+    # display_name = pat_name.family_name + ", " + pat_name.given_name
+    # print("Patient's name...:", display_name)
+    # print("Patient id.......:", dataset.PatientID)
+    # print("Modality.........:", dataset.Modality)
+    # print("Study Date.......:", dataset.StudyDate)
+    # print("Gantry angle......", dataset.GantryAngle)
     #
     # if 'PixelData' in dataset:
     #     rows = int(dataset.Rows)
@@ -1816,13 +1809,21 @@ def read_dicom3D(dirname, ioption):
     # plt.show(block=True)
 
 
-try:
-    dirname = str(sys.argv[1])
-    print(dirname)
-except:
-    print('Please enter a valid filename')
-    print("Use the following command to run this script")
-    print("python qc-jaws.py \"[dirname]\"")
+# try:
+#     dirname = str(sys.argv[1])
+#     # print(dirname)
+# except:
+#     print('Please enter a valid filename')
+#     print("Use the following command to run this script")
+#     print("python qc-jaws.py \"[dirname]\"")
+
+parser = argparse.ArgumentParser()
+parser.add_argument('direpid',type=str,help="Input the directory name")
+args=parser.parse_args()
+
+dirname=args.direpid
+
+
 
 # while True:
 #     line = input('Are the files compressed [yes(y)/no(n)]> ')
@@ -1852,4 +1853,6 @@ while True:  # example of infinite loops using try and except to catch only numb
 
 
 read_dicom3D(dirname, ioption)
+#Work with data in this folder
+# E:\zDropbox\Dropbox\PhDMedPhysi\DICOM\AsymJaws\2019_01_29\JUNCT
 # read_dicom3D(dirname, poption, ioption)
