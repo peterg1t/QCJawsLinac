@@ -764,7 +764,7 @@ def next_slice_axial(ax):
 
 
 def minimize_junction_Y(amplitude, peaks, peak_type, dx):
-    # print('number of peaks=', peaks)
+    print('Analysing Y jaws...')
 
     amp_prev = 0
     amp_filt_prev = 0
@@ -860,6 +860,7 @@ def minimize_junction_Y(amplitude, peaks, peak_type, dx):
 
 
 def minimize_junction_X(amplitude, peaks, peak_type, dx):
+    print('Analysing X jaws...')
     # print('number of peaks=', peaks)
 
     amp_prev = 0
@@ -949,6 +950,7 @@ def minimize_junction_X(amplitude, peaks, peak_type, dx):
 
 #minimize junction for field rotations is done differently given the shape of the fields
 def minimize_junction_fieldrot(amplitude, peaks, peak_type, dx, profilename):
+    print('Field jaws analysis...')
     # print('number of peaks=', peaks)
     amp_prev = 0
     amp_filt_prev = 0
