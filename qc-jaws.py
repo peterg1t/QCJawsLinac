@@ -881,6 +881,7 @@ def minimize_junction_X(amplitude, peaks, peak_type, dx):
             peak2, _ = find_peaks(amp_overlay_res, prominence=0.5)
 
             if abs(peak2 - peak1) < 2500:  # if the two peaks are close together proceeed to analysis
+                kk = kk + 1  # incrementing the figure generator
                 cumsum_prev = 1e7
                 if peak2 < peak1: # this guarantee that we always slide the overlay
                     amp_base_res = amplitude[:, k]
