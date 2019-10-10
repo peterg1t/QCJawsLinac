@@ -917,8 +917,16 @@ def minimize_junction_X(amplitude, peaks, peak_type, dx):
                             ax.set_xlabel('distance [mm]')
 
                         ax.set_ylabel('amplitude')
-                        ax.annotate('delta=' + str(abs(i - inc * 1) * dx) + ' mm', xy=(2, 1), xycoords='axes fraction',
-                                    xytext=(.35, .10))
+                        # ax.annotate('delta=' + str(abs(i - inc * 1) * dx) + ' mm', xy=(2, 1), xycoords='axes fraction',
+                        #             xytext=(.35, .10))
+                        if peaks[kk - 1] != 0:
+                            ax.annotate('delta=' + str(abs(i - inc * 1) * dx) + ' mm', xy=(2, 1),
+                                        xycoords='axes fraction',
+                                        xytext=(.35, .10))
+                        else:
+                            ax.annotate('delta= 0 mm (NO PEAK FOUND)', xy=(2, 1), xycoords='axes fraction',
+                                        xytext=(.35, .10))
+
 
                         # plt.show()
 
