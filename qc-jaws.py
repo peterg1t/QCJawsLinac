@@ -771,7 +771,7 @@ def minimize_junction_Y(amplitude, peaks, peak_type, dx):
 
     fig = plt.figure(figsize=(10, 6))  # create the plot
 
-    kk = 0  # counter for figure generation
+    kk = 1  # counter for figure generation
     print('amplitude.shape[1] - 1',amplitude.shape[1] - 1)
     for j in range(0, amplitude.shape[1] - 1):
 
