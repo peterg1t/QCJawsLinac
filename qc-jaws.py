@@ -771,7 +771,7 @@ def minimize_junction_Y(amplitude, peaks, peak_type, dx):
 
     fig = plt.figure(figsize=(10, 6))  # create the plot
 
-    kk = 1  # counter for figure generation
+    kk = 0  # counter for figure generation
     print('amplitude.shape[1] - 1',amplitude.shape[1] - 1)
     for j in range(0, amplitude.shape[1] - 1):
 
@@ -868,7 +868,7 @@ def minimize_junction_X(amplitude, peaks, peak_type, dx):
 
     fig = plt.figure(figsize=(10, 6))  # create the plot
 
-    kk = 1  # counter for figure generation
+    kk = 0  # counter for figure generation
     for j in range(0, amplitude.shape[1] - 1):
         for k in range(j + 1, amplitude.shape[1]):  # looping through remaining images
             amp_base_res = signal.convolve(amplitude[:, j], amplitude[:, j], mode='full')
