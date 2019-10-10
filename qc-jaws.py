@@ -907,35 +907,35 @@ def minimize_junction_X(amplitude, peaks, peak_type, dx):
                     amp_filt = running_mean(amp_tot, 281)
                     cumsum = np.sum(np.abs(amp_tot - amp_filt))
 
+
+
                     if cumsum > cumsum_prev:  # then we went too far
-                        ax = fig.add_subplot(amplitude.shape[1] - 1, 1, kk)
-                        ax.plot(amp_prev)
-                        ax.plot(amp_filt_prev)
-                        if kk == 1:
-                            ax.set_title('Minimization result',fontsize=16)
-                        if kk == amplitude.shape[1] - 1:  # if we reach the final plot the add the x axis label
-                            ax.set_xlabel('distance [mm]')
-
-                        ax.set_ylabel('amplitude')
-                        # ax.annotate('delta=' + str(abs(i - inc * 1) * dx) + ' mm', xy=(2, 1), xycoords='axes fraction',
-                        #             xytext=(.35, .10))
-                        if peaks[kk - 1] != 0:
-                            ax.annotate('delta=' + str(abs(i - inc * 1) * dx) + ' mm', xy=(2, 1),
-                                        xycoords='axes fraction',
-                                        xytext=(.35, .10))
-                        else:
-                            ax.annotate('delta= 0 mm (NO PEAK FOUND)', xy=(2, 1), xycoords='axes fraction',
-                                        xytext=(.35, .10))
-
-
-                        # plt.show()
-
-                        kk = kk + 1
                         break
                     else:
                         amp_prev = amp_tot
                         amp_filt_prev = amp_filt
                         cumsum_prev = cumsum
+
+                ax = fig.add_subplot(amplitude.shape[1] - 1, 1, kk)
+                ax.plot(amp_prev)
+                ax.plot(amp_filt_prev)
+                if kk == 1:
+                    ax.set_title('Minimization result', fontsize=16)
+                if kk == amplitude.shape[1] - 1:  # if we reach the final plot the add the x axis label
+                    ax.set_xlabel('distance [mm]')
+
+                ax.set_ylabel('amplitude')
+                # ax.annotate('delta=' + str(abs(i - inc * 1) * dx) + ' mm', xy=(2, 1), xycoords='axes fraction',
+                #             xytext=(.35, .10))
+                if peaks[kk - 1] != 0:
+                    ax.annotate('delta=' + str(abs(i - inc * 1) * dx) + ' mm', xy=(2, 1),
+                                xycoords='axes fraction',
+                                xytext=(.35, .10))
+                else:
+                    ax.annotate('delta= 0 mm (NO PEAK FOUND)', xy=(2, 1), xycoords='axes fraction',
+                                xytext=(.35, .10))
+
+                    # plt.show()
 
 
 
