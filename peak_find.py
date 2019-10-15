@@ -1,8 +1,15 @@
+import numpy as np
+from scipy import signal
+from scipy.signal import find_peaks, peak_prominences, peak_widths
+import matplotlib.pyplot as plt
 
 
 
 
-# this subroutine aims to find the peaks
+
+
+
+# this subroutine aims to find the peaks input (resampled amplitude profile)
 def peak_find(ampl_resamp, dx):
     peak_figs = []
     peaks = []

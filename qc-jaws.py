@@ -700,25 +700,30 @@ import numpy as np
 import argparse
 from scipy import signal
 from scipy.signal import find_peaks, peak_prominences, peak_widths
+import peak_find as pf
+import peak_find_fieldrot as pffr
+import minimize_junction_Y as minY
+import minimize_junction_X as minX
+import minimize_field_rot as minFR
+import running_mean as rm
 
 
 
 
-
-def running_mean(x, N):
-    out = np.zeros_like(x, dtype=np.float64)
-    dim_len = x.shape[0]
-    for i in range(dim_len):
-        if N % 2 == 0:
-            a, b = i - (N - 1) // 2, i + (N - 1) // 2 + 2
-        else:
-            a, b = i - (N - 1) // 2, i + (N - 1) // 2 + 1
-
-        # cap indices to min and max indices
-        a = max(0, a)
-        b = min(dim_len, b)
-        out[i] = np.mean(x[a:b])
-    return out
+# def running_mean(x, N):
+#     out = np.zeros_like(x, dtype=np.float64)
+#     dim_len = x.shape[0]
+#     for i in range(dim_len):
+#         if N % 2 == 0:
+#             a, b = i - (N - 1) // 2, i + (N - 1) // 2 + 2
+#         else:
+#             a, b = i - (N - 1) // 2, i + (N - 1) // 2 + 1
+#
+#         # cap indices to min and max indices
+#         a = max(0, a)
+#         b = min(dim_len, b)
+#         out[i] = np.mean(x[a:b])
+#     return out
 
 
 # axial visualization and scrolling
@@ -761,457 +766,6 @@ def next_slice_axial(ax):
     ax.index = (ax.index + 1) % volume.shape[2]
     #print(ax.index, volume.shape[2])
     ax.images[0].set_array(volume[:, :, ax.index])
-
-
-def minimize_junction_Y(amplitude, peaks, peak_type, dx):
-    print('Analyzing Y jaws...')
-
-    amp_prev = 0
-    amp_filt_prev = 0
-
-    fig = plt.figure(figsize=(10, 6))  # create the plot
-
-    kk = 0  # counter for figure generation
-    #print('amplitude.shape[1] - 1',amplitude.shape[1] - 1)
-    for j in range(0, amplitude.shape[1] - 1):
-
-        #print('j=',j)
-        for k in range(j + 1, amplitude.shape[1]):  # looping through remaining images
-            #print('k=',k)
-            amp_base_res = signal.convolve(amplitude[:, j], amplitude[:, j], mode='full')
-            amp_base_res = signal.resample(amp_base_res / np.amax(amp_base_res), int(np.ceil(len(amp_base_res) / 2)))
-
-            amp_overlay_res = signal.convolve(amplitude[:, k], amplitude[:, k], mode='full')
-            amp_overlay_res = signal.resample(amp_overlay_res / np.amax(amp_overlay_res),
-                                                  int(np.ceil(len(amp_overlay_res) / 2)))
-            peak1, _ = find_peaks(amp_base_res, prominence=0.5)
-            peak2, _ = find_peaks(amp_overlay_res, prominence=0.5)
-
-
-            if abs(peak2 - peak1) < 2500:  # if the two peaks are close together proceeed to analysis
-                kk = kk + 1 #incrementing the figure generator
-                cumsum_prev = 1e7
-                if peak2<peak1:
-                    amp_base_res = amplitude[:, k]
-                    amp_overlay_res = amplitude[:, j]
-                else:
-                    amp_base_res = amplitude[:, j]
-                    amp_overlay_res = amplitude[:, k]
-
-                if peak_type[kk-1] == 0: #kk-1 to start from the null element of the array
-                    inc = -1
-                else:
-                    inc = 1
-
-                for i in range(0, inc * 80, inc * 1):
-                    x = np.linspace(0, 0 + (len(amp_base_res) * dx), len(amplitude),
-                                    endpoint=False)  # definition of the distance axis
-                    amp_overlay_res_roll = np.roll(amp_overlay_res, i)
-
-                    # amplitude is the vector to analyze +-500 samples from the center
-                    amp_tot = (amp_base_res[peaks[kk-1] - 1000:peaks[kk-1] + 1000] + amp_overlay_res_roll[peaks[kk-1] - 1000:peaks[kk-1] + 1000])  # divided by 2 to normalize
-
-                    # print('Analyzing peak=',peaks[kk - 1])
-                    xsel = x[peaks[kk-1] - 1000:peaks[kk-1] + 1000]
-
-                    amp_filt = running_mean(amp_tot, 281)
-                    cumsum = np.sum(np.abs(amp_tot - amp_filt))
-
-                    if cumsum > cumsum_prev:  # then we went too far
-                        break
-                    else:
-                        amp_prev = amp_tot
-                        amp_filt_prev = amp_filt
-                        cumsum_prev = cumsum
-
-
-                ax = fig.add_subplot(amplitude.shape[1] - 1, 1, kk)
-                ax.plot(amp_prev)
-                ax.plot(amp_filt_prev)
-                if kk == 1:
-                    ax.set_title('Minimization result', fontsize=16)
-                if kk == amplitude.shape[1] - 1:  # if we reach the final plot the add the x axis label
-                    ax.set_xlabel('distance [mm]')
-                ax.set_ylabel('amplitude')
-                if peaks[kk-1]!=0:
-                    ax.annotate('delta=' + str(abs(i - inc * 1) * dx) + ' mm', xy=(2, 1), xycoords='axes fraction',
-                            xytext=(.35, .10))
-                else:
-                    ax.annotate('delta= 0 mm (NO PEAK FOUND)', xy=(2, 1), xycoords='axes fraction',
-                                xytext=(.35, .10))
-
-
-            # else:
-            #     print(j, k, 'the data is not contiguous finding another curve in dataset')
-
-
-
-
-
-    return fig
-
-
-
-
-
-
-
-
-
-
-def minimize_junction_X(amplitude, peaks, peak_type, dx):
-    print('Analyzing X jaws...')
-    # print('number of peaks=', peaks)
-
-    amp_prev = 0
-    amp_filt_prev = 0
-
-    fig = plt.figure(figsize=(10, 6))  # create the plot
-
-    kk = 0  # counter for figure generation
-    for j in range(0, amplitude.shape[1] - 1):
-        for k in range(j + 1, amplitude.shape[1]):  # looping through remaining images
-            amp_base_res = signal.convolve(amplitude[:, j], amplitude[:, j], mode='full')
-            amp_base_res = signal.resample(amp_base_res / np.amax(amp_base_res), int(np.ceil(len(amp_base_res) / 2)))
-
-            amp_overlay_res = signal.convolve(amplitude[:, k], amplitude[:, k], mode='full')
-            amp_overlay_res = signal.resample(amp_overlay_res / np.amax(amp_overlay_res),
-                                                  int(np.ceil(len(amp_overlay_res) / 2)))
-            peak1, _ = find_peaks(amp_base_res, prominence=0.5)
-            peak2, _ = find_peaks(amp_overlay_res, prominence=0.5)
-
-            if abs(peak2 - peak1) < 2500:  # if the two peaks are close together proceeed to analysis
-                kk = kk + 1  # incrementing the figure generator
-                cumsum_prev = 1e7
-                if peak2 < peak1: # this guarantee that we always slide the overlay
-                    amp_base_res = amplitude[:, k]
-                    amp_overlay_res = amplitude[:, j]
-                else:
-                    amp_base_res = amplitude[:, j]
-                    amp_overlay_res = amplitude[:, k]
-
-                if peak_type[j] == 0:
-                    inc = -1
-                else:
-                    inc = 1
-                for i in range(0, inc * 80, inc * 1):
-                    x = np.linspace(0, 0 + (len(amp_base_res) * dx), len(amplitude),
-                                    endpoint=False)  # definition of the distance axis
-                    amp_overlay_res_roll = np.roll(amp_overlay_res, i)
-
-                    # amplitude is the vector to analyze +-500 samples from the center
-                    amp_tot = (amp_base_res[peaks[j] - 1000:peaks[j] + 1000] + amp_overlay_res_roll[
-                                                                               peaks[j] - 1000:peaks[
-                                                                                                   j] + 1000])  # divided by 2 to normalize
-                    xsel = x[peaks[j] - 1000:peaks[j] + 1000]
-
-                    amp_filt = running_mean(amp_tot, 281)
-                    cumsum = np.sum(np.abs(amp_tot - amp_filt))
-
-
-
-                    if cumsum > cumsum_prev:  # then we went too far
-                        break
-                    else:
-                        amp_prev = amp_tot
-                        amp_filt_prev = amp_filt
-                        cumsum_prev = cumsum
-
-                ax = fig.add_subplot(amplitude.shape[1] - 1, 1, kk)
-                ax.plot(amp_prev)
-                ax.plot(amp_filt_prev)
-                if kk == 1:
-                    ax.set_title('Minimization result', fontsize=16)
-                if kk == amplitude.shape[1] - 1:  # if we reach the final plot the add the x axis label
-                    ax.set_xlabel('distance [mm]')
-
-                ax.set_ylabel('amplitude')
-                # ax.annotate('delta=' + str(abs(i - inc * 1) * dx) + ' mm', xy=(2, 1), xycoords='axes fraction',
-                #             xytext=(.35, .10))
-                if peaks[kk - 1] != 0:
-                    ax.annotate('delta=' + str(abs(i - inc * 1) * dx) + ' mm', xy=(2, 1),
-                                xycoords='axes fraction',
-                                xytext=(.35, .10))
-                else:
-                    ax.annotate('delta= 0 mm (NO PEAK FOUND)', xy=(2, 1), xycoords='axes fraction',
-                                xytext=(.35, .10))
-
-                    # plt.show()
-
-
-
-            # else:
-                # print(j, k, 'the data is not contiguous finding another curve in dataset')
-
-    return fig
-
-
-
-
-
-
-
-
-
-
-
-
-
-#minimize junction for field rotations is done differently given the shape of the fields
-def minimize_junction_fieldrot(amplitude, peaks, peak_type, dx, profilename):
-    print('Field rotation jaw analysis...')
-    # print('number of peaks=', peaks)
-    amp_prev = 0
-    amp_filt_prev = 0
-
-    fig = plt.figure(figsize=(10, 6))  # create the plot
-
-    kk = 1  # counter for figure generation
-    for j in range(0, amplitude.shape[1] - 1):
-        for k in range(j + 1, amplitude.shape[1]):  # looping through remaining images
-            amp_base_res = signal.convolve(amplitude[:, j], amplitude[:, j], mode='full')
-            amp_base_res = signal.resample(amp_base_res / np.amax(amp_base_res), int(np.ceil(len(amp_base_res) / 2)))
-
-            amp_overlay_res = signal.convolve(amplitude[:, k], amplitude[:, k], mode='full')
-            amp_overlay_res = signal.resample(amp_overlay_res / np.amax(amp_overlay_res),
-                                                  int(np.ceil(len(amp_overlay_res) / 2)))
-            # amp_base_res = signal.savgol_filter(amplitude[:, j], 1001, 3)
-            # amp_overlay_res = signal.savgol_filter(amplitude[:, k], 1001, 3)
-            peak1, _ = find_peaks(amp_base_res, prominence=0.5)
-            peak2, _ = find_peaks(amp_overlay_res, prominence=0.5)
-
-            cumsum_prev = 1e7
-            amp_base_res = amplitude[:, j]
-            amp_overlay_res = amplitude[:, k]
-
-            if peak_type[j] == 0:
-                inc = -1
-            else:
-                inc = 1
-            for i in range(0, inc * 80, inc * 1):
-                x = np.linspace(0, 0 + (len(amp_base_res) * dx), len(amplitude),
-                                endpoint=False)  # definition of the distance axis
-                amp_overlay_res_roll = np.roll(amp_overlay_res, i)
-
-                # amplitude is the vector to analyze +-500 samples from the center
-                amp_tot = (amp_base_res[peaks[j] - 1000:peaks[j] + 1000] + amp_overlay_res_roll[peaks[j] - 1000:peaks[
-                                                                                                                   j] + 1000])  # divided by 2 to normalize
-                xsel = x[peaks[j] - 1000:peaks[j] + 1000]
-                amp_filt = running_mean(amp_tot, 281)
-
-                cumsum = np.sum(np.abs(amp_tot - amp_filt))
-
-                if cumsum > cumsum_prev:  # then we went too far
-                    ax = fig.add_subplot(amplitude.shape[1] - 1, 1, kk)
-
-                    ax.plot(amp_prev)
-                    ax.plot(amp_filt_prev)
-                    if kk == 1:
-                        ax.set_title('Minimization result - '+profilename,fontsize=16)
-                    if kk == amplitude.shape[1] - 1:  # if we reach the final plot the add the x axis label
-                        ax.set_xlabel('distance [mm]')
-
-                    ax.set_ylabel('amplitude')
-                    ax.annotate('delta=' + str(abs(i - inc * 1) * dx) + ' mm', xy=(2, 1), xycoords='axes fraction',
-                                xytext=(.35, .10))
-
-                    # plt.show()
-
-                    kk = kk + 1
-                    break
-                else:
-                    amp_prev = amp_tot
-                    amp_filt_prev = amp_filt
-                    cumsum_prev = cumsum
-
-    return fig
-
-
-
-
-
-
-
-
-
-
-
-# this subroutine aims to find the peaks
-def peak_find(ampl_resamp, dx):
-    peak_figs = []
-    peaks = []
-    peak_type = []
-    for j in range(0, ampl_resamp.shape[1] - 1):
-        amp_base_res = signal.convolve(ampl_resamp[:, j], ampl_resamp[:, j], mode='full')
-        amp_base_res = signal.resample(amp_base_res / np.amax(amp_base_res), int(np.ceil(len(amp_base_res) / 2)))
-        for k in range(j + 1, ampl_resamp.shape[1]):
-            amp_overlay_res = signal.convolve(ampl_resamp[:, k], ampl_resamp[:, k], mode='full')
-            amp_overlay_res = signal.resample(amp_overlay_res / np.amax(amp_overlay_res),int(np.ceil(len(amp_overlay_res) / 2)))
-            # amp_overlay_res = signal.savgol_filter(ampl_resamp[:, k], 1501, 1)
-
-            peak1, _ = find_peaks(amp_base_res, prominence=0.5)
-            peak2, _ = find_peaks(amp_overlay_res, prominence=0.5)
-
-
-            if abs(peak2 - peak1) < 2500:  # if the two peaks are separated the two fields are not adjacent.
-                amp_peak = (ampl_resamp[:, j] + ampl_resamp[:, k])
-                x = np.linspace(0, 0 + (len(amp_peak) * dx / 10), len(amp_peak),
-                                endpoint=False)  # definition of the distance axis
-
-                peak_pos, _ = find_peaks(
-                    signal.savgol_filter(amp_peak[min(peak1[0], peak2[0]):max(peak1[0], peak2[0])], 201, 3),
-                    prominence=0.010)
-                pos_prominence = signal.peak_prominences(
-                    signal.savgol_filter(amp_peak[min(peak1[0], peak2[0]):max(peak1[0], peak2[0])], 201, 3), peak_pos)
-                # print('#peaks pos det=', len(peak_pos), peak_pos)
-                # print('#pos peaks prominence=', pos_prominence[0])
-                peak_neg, _ = find_peaks(
-                    signal.savgol_filter(-amp_peak[min(peak1[0], peak2[0]):max(peak1[0], peak2[0])], 201, 3),
-                    prominence=0.010)
-                neg_prominence = signal.peak_prominences(
-                    signal.savgol_filter(-amp_peak[min(peak1[0], peak2[0]):max(peak1[0], peak2[0])], 201, 3), peak_neg)
-                # print('#peaks neg det=',len(peak_neg),peak_neg)
-                # print('#neg peaks prominence=', neg_prominence[0])
-                # we now need to select the peak with the largest prominence positve or negative
-                # we add all the peaks and prominences toghether
-                peaks_all = np.concatenate((peak_pos, peak_neg), axis=None)
-                prom_all = np.concatenate((pos_prominence[0], neg_prominence[0]), axis=None)
-                # print('all peaks',peaks_all,prom_all)
-
-                if peaks_all.size != 0:
-                    peak = peaks_all[np.argmax(prom_all)]
-                    if peak in peak_pos:
-                        peak_type.append(1)
-                        peaks.append(min(peak1[0], peak2[0]) + peak)
-                        # print('pos peak')
-                    elif peak in peak_neg:
-                        peak_type.append(0)
-                        peaks.append(min(peak1[0], peak2[0]) + peak)
-                        # print('neg peak')
-
-                    fig = plt.figure(figsize=(10, 6))
-                    plt.plot(x, amp_peak, label='Total amplitude profile')
-                    plt.plot(x[min(peak1[0], peak2[0]) + peak], amp_peak[min(peak1[0], peak2[0]) + peak], "x",
-                             label='Peaks detected')
-                    plt.ylabel('amplitude [a.u.]')
-                    plt.xlabel('distance [mm]')
-                    plt.legend()
-                    fig.suptitle('Junctions', fontsize=16)
-                    peak_figs.append(fig)
-
-                elif peaks_all.size == 0:
-                    peaks.append(0)
-                    peak_type.append(0)
-                    print('no peak has been found')
-                    fig = plt.figure(figsize=(10, 6))
-                    plt.plot(x, amp_peak, label='Total amplitude profile')
-                    # plt.plot(x[min(peak1[0], peak2[0]) + peak], amp_peak[min(peak1[0], peak2[0]) + peak], "x",
-                    #          label='Peaks detected')
-                    plt.ylabel('amplitude [a.u.]')
-                    plt.xlabel('distance [mm]')
-                    plt.legend()
-                    fig.suptitle('Junctions', fontsize=16)
-                    peak_figs.append(fig)
-
-
-
-
-
-            # else:
-                # print(j, k, 'the data is not contiguous finding another curve in dataset')
-
-    # print('peaks_here=',peaks)
-    return peaks, peak_type, peak_figs
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# this subroutine aims to find the peaks
-def peak_find_fieldrot(ampl_resamp, dx,profilename):
-    peaks = []
-    peak_type = []
-    for j in range(0, ampl_resamp.shape[1] - 1):
-        amp_base_res = signal.convolve(ampl_resamp[:, j], ampl_resamp[:, j], mode='full')
-        amp_base_res=signal.resample(amp_base_res/np.amax(amp_base_res),int(np.ceil(len(amp_base_res)/2)))
-
-        for k in range(j + 1, ampl_resamp.shape[1]):
-            amp_overlay_res = signal.convolve(ampl_resamp[:, k], ampl_resamp[:, k], mode='full')
-            amp_overlay_res = signal.resample(amp_overlay_res/np.amax(amp_overlay_res),int(np.ceil(len(amp_overlay_res)/2)))
-
-
-            peak1, _ = find_peaks(amp_base_res, prominence=0.5)
-            peak2, _ = find_peaks(amp_overlay_res, prominence=0.5)
-            # print('peak find', peak1, peak2, abs(peak2 - peak1),len(amp_base_res))
-
-            if abs(peak2 - peak1) <= 4000:  # if the two peaks are separated the two fields are not adjacent.
-                amp_peak = (ampl_resamp[:, j] + ampl_resamp[:, k])
-                x = np.linspace(0, 0 + (len(amp_peak) * dx / 10), len(amp_peak),
-                                endpoint=False)  # definition of the distance axis
-
-
-                peak_pos, _ = find_peaks(signal.savgol_filter(amp_peak[min(peak1[0],peak2[0]):max(peak1[0],peak2[0])],201,3), prominence=0.010)
-                pos_prominence = signal.peak_prominences(signal.savgol_filter(amp_peak[min(peak1[0],peak2[0]):max(peak1[0],peak2[0])],201,3),peak_pos)
-                # print('#peaks pos det=', len(peak_pos), peak_pos)
-                # print('#pos peaks prominence=', pos_prominence[0])
-                peak_neg, _ = find_peaks(signal.savgol_filter(-amp_peak[min(peak1[0], peak2[0]):max(peak1[0], peak2[0])], 201, 3), prominence=0.010)
-                neg_prominence = signal.peak_prominences(signal.savgol_filter(-amp_peak[min(peak1[0], peak2[0]):max(peak1[0], peak2[0])], 201, 3),peak_neg)
-                # print('#peaks neg det=',len(peak_neg),peak_neg)
-                # print('#neg peaks prominence=', neg_prominence[0])
-                #we now need to select the peak with the largest prominence positve or negative
-                #we add all the peaks and prominences toghether
-                peaks_all = np.concatenate((peak_pos,peak_neg),axis=None)
-                prom_all=np.concatenate((pos_prominence[0],neg_prominence[0]),axis=None)
-                # print('all peaks',peaks_all,prom_all)
-                peak = peaks_all[np.argmax(prom_all)]
-                if peak.size!=0:
-                    if peak in peak_pos:
-                        peak_type.append(1)
-                        peaks.append(min(peak1[0], peak2[0]) + peak)
-                        # print('pos peak')
-                    elif peak in peak_neg:
-                        peak_type.append(0)
-                        peaks.append(min(peak1[0], peak2[0]) + peak)
-                        # print('neg peak')
-
-                    fig = plt.figure(figsize=(10, 6))
-                    plt.plot(x, amp_peak, label='Total amplitude profile - ' + profilename)
-                    plt.plot(x[min(peak1[0], peak2[0]) + peak], amp_peak[min(peak1[0], peak2[0]) + peak], "x",
-                             label='Peaks detected')
-                    plt.ylabel('amplitude [a.u.]')
-                    plt.xlabel('distance [mm]')
-                    plt.legend()
-                    fig.suptitle('Junctions - ' + profilename, fontsize=16)
-
-                elif peak.size==0:
-                    peaks.append(0)
-                    peak_type.append(0)
-                    print('no peak has been found')
-
-
-
-            # else:
-                # print(j, k, 'the data is not contiguous finding another curve in dataset')
-
-    # print('peaks=',peaks)
-    return peaks, peak_type, fig
-
-
-
-
-
-
-
-
 
 
 
@@ -1259,8 +813,10 @@ def merge_view_vert(volume, dx, dy):
     # ax.set_title("slice=" + str(ax.index))
     fig.suptitle('Merged volume', fontsize=16)
 
-    peaks, peak_type, peak_figs = peak_find(ampl_resamp, dx)
-    junction_figs = minimize_junction_X(ampl_resamp, peaks, peak_type, dx / 10)
+    # peaks, peak_type, peak_figs = peak_find(ampl_resamp, dx)
+    peaks, peak_type, peak_figs = pf.peak_find(ampl_resamp, dx)
+    # junction_figs = minimize_junction_X(ampl_resamp, peaks, peak_type, dx / 10)
+    junction_figs = minX.minimize_junction_X(ampl_resamp, peaks, peak_type, dx / 10)
     junctions.append(junction_figs)
 
     return fig, peak_figs, junctions
@@ -1315,8 +871,10 @@ def merge_view_horz(volume, dx, dy):
     ax[1].legend()
     fig.suptitle('Merged volume', fontsize=16)
 
-    peaks, peak_type, peak_figs = peak_find(ampl_resamp, dy)
-    junction_figs = minimize_junction_Y(ampl_resamp, peaks, peak_type, dy / 10)
+    # peaks, peak_type, peak_figs = peak_find(ampl_resamp, dy)
+    peaks, peak_type, peak_figs = pf.peak_find(ampl_resamp, dy)
+    # junction_figs = minimize_junction_Y(ampl_resamp, peaks, peak_type, dy / 10)
+    junction_figs = minY.minimize_junction_Y(ampl_resamp, peaks, peak_type, dy / 10)
     junctions.append(junction_figs)
 
     return fig, peak_figs, junctions
@@ -1468,26 +1026,31 @@ def merge_view_filtrot(volume, dx, dy):
     ax.text(dx * int(volume_resort.shape[1]) - dx*int(volume_resort.shape[1] / 2.9), dy * int(volume_resort.shape[0]/1.8), 'Profile 3',rotation=90)
     # plt.show()
 
-    peaks, peak_type, peak_figs = peak_find_fieldrot(ampl_resamp_x1, dx,'Profile 1')
-    junction_figs = minimize_junction_fieldrot(ampl_resamp_x1, peaks, peak_type, dx / 10,'Profile 1')
+    # peaks, peak_type, peak_figs = peak_find_fieldrot(ampl_resamp_x1, dx,'Profile 1')
+    peaks, peak_type, peak_figs = pffr.peak_find_fieldrot(ampl_resamp_x1, dx,'Profile 1')
+    # junction_figs = minimize_junction_fieldrot(ampl_resamp_x1, peaks, peak_type, dx / 10,'Profile 1')
+    junction_figs = minFR.minimize_junction_fieldrot(ampl_resamp_x1, peaks, peak_type, dx / 10,'Profile 1')
     peaks_figs_comb.append(peak_figs)
     junctions_comb.append(junction_figs)
     # print('x1', peaks, peak_type)
 
-    peaks, peak_type, peak_figs = peak_find_fieldrot(ampl_resamp_x2, dx,'Profile 2')
-    junction_figs = minimize_junction_fieldrot(ampl_resamp_x2, peaks, peak_type, dx / 10, 'Profile 2')
+    # peaks, peak_type, peak_figs = peak_find_fieldrot(ampl_resamp_x2, dx,'Profile 2')
+    peaks, peak_type, peak_figs = pffr.peak_find_fieldrot(ampl_resamp_x2, dx,'Profile 2')
+    junction_figs = minFR.minimize_junction_fieldrot(ampl_resamp_x2, peaks, peak_type, dx / 10, 'Profile 2')
     peaks_figs_comb.append(peak_figs)
     junctions_comb.append(junction_figs)
     # print('x2', peaks, peak_type)
 
-    peaks, peak_type, peak_figs = peak_find_fieldrot(ampl_resamp_y1, dy,'Profile 3')
-    junction_figs = minimize_junction_fieldrot(ampl_resamp_y1, peaks, peak_type, dy / 10 , 'Profile 3')
+    # peaks, peak_type, peak_figs = peak_find_fieldrot(ampl_resamp_y1, dy,'Profile 3')
+    peaks, peak_type, peak_figs = pffr.peak_find_fieldrot(ampl_resamp_y1, dy,'Profile 3')
+    junction_figs = minFR.minimize_junction_fieldrot(ampl_resamp_y1, peaks, peak_type, dy / 10 , 'Profile 3')
     peaks_figs_comb.append(peak_figs)
     junctions_comb.append(junction_figs)
     # print('y1', peaks)
 
-    peaks, peak_type, peak_figs = peak_find_fieldrot(ampl_resamp_y2, dy,'Profile 4')
-    junction_figs = minimize_junction_fieldrot(ampl_resamp_y2, peaks, peak_type, dy / 10, 'Profile 4')
+    # peaks, peak_type, peak_figs = peak_find_fieldrot(ampl_resamp_y2, dy,'Profile 4')
+    peaks, peak_type, peak_figs = pffr.peak_find_fieldrot(ampl_resamp_y2, dy,'Profile 4')
+    junction_figs = minFR.minimize_junction_fieldrot(ampl_resamp_y2, peaks, peak_type, dy / 10, 'Profile 4')
     peaks_figs_comb.append(peak_figs)
     junctions_comb.append(junction_figs)
     # print('y2', peaks)

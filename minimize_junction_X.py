@@ -1,8 +1,15 @@
+import numpy as np
 from scipy import signal
 from scipy.signal import find_peaks, peak_prominences, peak_widths
+import matplotlib.pyplot as plt
+import running_mean as rm
+
+
+
+
 
 def minimize_junction_X(amplitude, peaks, peak_type, dx):
-    print('Analysing X jaws...')
+    print('Analyzing X jaws...')
     # print('number of peaks=', peaks)
 
     amp_prev = 0
@@ -47,7 +54,7 @@ def minimize_junction_X(amplitude, peaks, peak_type, dx):
                                                                                                    j] + 1000])  # divided by 2 to normalize
                     xsel = x[peaks[j] - 1000:peaks[j] + 1000]
 
-                    amp_filt = running_mean(amp_tot, 281)
+                    amp_filt = rm.running_mean(amp_tot, 281)
                     cumsum = np.sum(np.abs(amp_tot - amp_filt))
 
 

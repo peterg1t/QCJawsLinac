@@ -1,10 +1,15 @@
+import numpy as np
 from scipy import signal
 from scipy.signal import find_peaks, peak_prominences, peak_widths
+import matplotlib.pyplot as plt
+import running_mean as rm
+
+
 
 
 #minimize junction for field rotations is done differently given the shape of the fields
 def minimize_junction_fieldrot(amplitude, peaks, peak_type, dx, profilename):
-    print('Field jaws analysis...')
+    print('Field rotation jaw analysis...')
     # print('number of peaks=', peaks)
     amp_prev = 0
     amp_filt_prev = 0
@@ -42,7 +47,7 @@ def minimize_junction_fieldrot(amplitude, peaks, peak_type, dx, profilename):
                 amp_tot = (amp_base_res[peaks[j] - 1000:peaks[j] + 1000] + amp_overlay_res_roll[peaks[j] - 1000:peaks[
                                                                                                                    j] + 1000])  # divided by 2 to normalize
                 xsel = x[peaks[j] - 1000:peaks[j] + 1000]
-                amp_filt = running_mean(amp_tot, 281)
+                amp_filt = rm.running_mean(amp_tot, 281)
 
                 cumsum = np.sum(np.abs(amp_tot - amp_filt))
 

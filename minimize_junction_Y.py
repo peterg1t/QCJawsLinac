@@ -1,9 +1,12 @@
+import numpy as np
 from scipy import signal
 from scipy.signal import find_peaks, peak_prominences, peak_widths
+import matplotlib.pyplot as plt
+import running_mean as rm
 
 
 def minimize_junction_Y(amplitude, peaks, peak_type, dx):
-    print('Analysing Y jaws...')
+    print('Analyzing Y jaws...')
 
     amp_prev = 0
     amp_filt_prev = 0
@@ -11,12 +14,12 @@ def minimize_junction_Y(amplitude, peaks, peak_type, dx):
     fig = plt.figure(figsize=(10, 6))  # create the plot
 
     kk = 0  # counter for figure generation
-    print('amplitude.shape[1] - 1',amplitude.shape[1] - 1)
+    #print('amplitude.shape[1] - 1',amplitude.shape[1] - 1)
     for j in range(0, amplitude.shape[1] - 1):
 
-        print('j=',j)
+        #print('j=',j)
         for k in range(j + 1, amplitude.shape[1]):  # looping through remaining images
-            print('k=',k)
+            #print('k=',k)
             amp_base_res = signal.convolve(amplitude[:, j], amplitude[:, j], mode='full')
             amp_base_res = signal.resample(amp_base_res / np.amax(amp_base_res), int(np.ceil(len(amp_base_res) / 2)))
 
@@ -53,7 +56,7 @@ def minimize_junction_Y(amplitude, peaks, peak_type, dx):
                     # print('Analyzing peak=',peaks[kk - 1])
                     xsel = x[peaks[kk-1] - 1000:peaks[kk-1] + 1000]
 
-                    amp_filt = running_mean(amp_tot, 281)
+                    amp_filt = rm.running_mean(amp_tot, 281)
                     cumsum = np.sum(np.abs(amp_tot - amp_filt))
 
                     if cumsum > cumsum_prev:  # then we went too far
