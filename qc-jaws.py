@@ -1,30 +1,63 @@
+#############################START LICENSE##########################################
 # Copyright (C) 2019 Pedro Martinez
+#
+# # This program is free software: you can redistribute it and/or modify
+# # it under the terms of the GNU Affero General Public License as published
+# # by the Free Software Foundation, either version 3 of the License, or
+# # (at your option) any later version (the "AGPL-3.0+").
+#
+# # This program is distributed in the hope that it will be useful,
+# # but WITHOUT ANY WARRANTY; without even the implied warranty of
+# # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# # GNU Affero General Public License and the additional terms for more
+# # details.
+#
+# # You should have received a copy of the GNU Affero General Public License
+# # along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+# # ADDITIONAL TERMS are also included as allowed by Section 7 of the GNU
+# # Affero General Public License. These additional terms are Sections 1, 5,
+# # 6, 7, 8, and 9 from the Apache License, Version 2.0 (the "Apache-2.0")
+# # where all references to the definition "License" are instead defined to
+# # mean the AGPL-3.0+.
+#
+# # You should have received a copy of the Apache-2.0 along with this
+# # program. If not, see <http://www.apache.org/licenses/LICENSE-2.0>.
+#############################END LICENSE##########################################
 
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Affero General Public License as published
-# by the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version (the "AGPL-3.0+").
 
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU Affero General Public License and the additional terms for more
-# details.
+###########################################################################################
+#
+#   Script name: qc-lightrad
+#
+#   Description: This script performs automated EPID QC of the QC-3 phantom developed in Manitoba.
+#   There are other tools out there that do this but generally the ROI are fixed whereas this script
+#   aims to dynamically identify them using machine vision and the bibs in the phantom.
+#
+#   Example usage: python qc-jaws "/folder/"
+#
+#   Tool for calculating jaws junction shifts for linear accelerators. The script opens every DICOM
+#   file in a given folder and creates a combined profile resulting from the superposition of the
+#   two or more fields. It then detects the peak/through formed by the gap/overlap of the fields.
+#   A window is then selected around this point and a Savitzky-Golay smoothing filter is then applied
+#   to the combined profile. This new curve is then used iteratively to minimize the profile created
+#   every time one of the profiles slide to close the gap or decrease the overlap. The profile will
+#   achieve it greatest level of homogeneity when the dosimetric penumbra of both fields are
+#   matched in space. The final result is the optimal calculation of the gap/overlap between the
+#   two profiles. The software generates a pdf file with a summary of all the results.
+#
+#   The folder should contain:
+#   2 X-jaws images
+#   2 or 3 Y-jaws images
+#   4 Field rotation images
+#
+#   Author: Pedro Martinez
+#   pedro.enrique.83@gmail.com
+#   5877000722
+#   Date:2019-04-09
+#
+###########################################################################################
 
-# You should have received a copy of the GNU Affero General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-
-# ADDITIONAL TERMS are also included as allowed by Section 7 of the GNU
-# Affero General Public License. These additional terms are Sections 1, 5,
-# 6, 7, 8, and 9 from the Apache License, Version 2.0 (the "Apache-2.0")
-# where all references to the definition "License" are instead defined to
-# mean the AGPL-3.0+.
-
-# You should have received a copy of the Apache-2.0 along with this
-# program. If not, see <http://www.apache.org/licenses/LICENSE-2.0>.
-
-# The following needs to be removed before leaving labs
-# pylint: skip-file
 
 
 import os
