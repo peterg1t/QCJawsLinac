@@ -584,45 +584,53 @@ def read_dicom3D(dirname, ioption):
     multi_slice_viewer(ArrayDicom, dx, dy)
 
 
-    fig, peak_figs, junctions_figs = merge_view_vert(xfield, dx, dy)
-    with PdfPages(dirname + 'jaws_X_report.pdf') as pdf:
-        pdf.savefig(fig)
-        for i in range(0, len(peak_figs)):
-            pdf.savefig(peak_figs[i])
 
-        for i in range(0, len(junctions_figs)):
-            pdf.savefig(junctions_figs[i])
+    if np.shape(xfield)[2] == 2:
+        fig, peak_figs, junctions_figs = merge_view_vert(xfield, dx, dy)
+        with PdfPages(dirname + 'jaws_X_report.pdf') as pdf:
+            pdf.savefig(fig)
+            for i in range(0, len(peak_figs)):
+                pdf.savefig(peak_figs[i])
 
-        plt.close()
+            for i in range(0, len(junctions_figs)):
+                pdf.savefig(junctions_figs[i])
 
+            plt.close()
 
+    else:
+        print("X jaws data analysis not completed please verify that you have two X jaws images. For more information see manual.")
 
-    fig, peak_figs, junctions_figs = merge_view_horz(yfield, dx, dy)
-    # print('peak_figs********************************************************=', len(peak_figs),peak_figs)
-    with PdfPages(dirname + 'jaws_Y_report.pdf') as pdf:
-        pdf.savefig(fig)
-        for i in range(0, len(peak_figs)):
-            pdf.savefig(peak_figs[i])
+    if np.shape(yfield)[2] == 4:
+        fig, peak_figs, junctions_figs = merge_view_horz(yfield, dx, dy)
+        # print('peak_figs********************************************************=', len(peak_figs),peak_figs)
+        with PdfPages(dirname + 'jaws_Y_report.pdf') as pdf:
+            pdf.savefig(fig)
+            for i in range(0, len(peak_figs)):
+                pdf.savefig(peak_figs[i])
 
-        for i in range(0, len(junctions_figs)):
-            pdf.savefig(junctions_figs[i])
+            for i in range(0, len(junctions_figs)):
+                pdf.savefig(junctions_figs[i])
 
-        plt.close()
+            plt.close()
 
+    else:
+        print("Y jaws data analysis not completed please verify that you have four Y jaws images. For more information see manual.")
 
+    if np.shape(rotfield)[2] == 4:
+        fig, peak_figs, junctions_figs = merge_view_filtrot(rotfield, dx, dy)
 
+        with PdfPages(dirname + 'jaws_FR_report.pdf') as pdf:
+            pdf.savefig(fig)
+            for i in range(0, len(peak_figs)):
+                pdf.savefig(peak_figs[i])
 
-    fig, peak_figs, junctions_figs = merge_view_filtrot(rotfield, dx, dy)
+            for i in range(0, len(junctions_figs)):
+                pdf.savefig(junctions_figs[i])
 
-    with PdfPages(dirname + 'jaws_FR_report.pdf') as pdf:
-        pdf.savefig(fig)
-        for i in range(0, len(peak_figs)):
-            pdf.savefig(peak_figs[i])
+            plt.close()
 
-        for i in range(0, len(junctions_figs)):
-            pdf.savefig(junctions_figs[i])
-
-        plt.close()
+    else:
+        print("Field rotation data analysis not completed please verify that you have four field rotation images. For more information see manual.")
 
 
 
