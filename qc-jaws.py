@@ -591,11 +591,11 @@ def read_dicom3D(direc, i_option):
         with PdfPages(direc + 'jaws_X_report.pdf') as pdf:
             pdf.savefig(fig)
             # for i in range(0, len(peak_figs)):
-            for i,f in enumerate(peak_figs):
+            for _, f in enumerate(peak_figs):
                 pdf.savefig(f)
 
             # for i in range(0, len(junctions_figs)):
-            for i,f in enumerate(junctions_figs):
+            for _, f in enumerate(junctions_figs):
                 pdf.savefig(f)
 
             plt.close()
@@ -609,10 +609,10 @@ def read_dicom3D(direc, i_option):
         with PdfPages(direc + 'jaws_Y_report.pdf') as pdf:
             pdf.savefig(fig)
             # for i in range(0, len(peak_figs)):
-            for i,f in enumerate(peak_figs):
+            for _, f in enumerate(peak_figs):
                 pdf.savefig(f)
 
-            for i,f in enumerate(junctions_figs):
+            for _, f in enumerate(junctions_figs):
                 pdf.savefig(f)
 
             plt.close()
@@ -625,10 +625,10 @@ def read_dicom3D(direc, i_option):
 
         with PdfPages(direc + 'jaws_FR_report.pdf') as pdf:
             pdf.savefig(fig)
-            for i,f in enumerate(peak_figs):
+            for _, f in enumerate(peak_figs):
                 pdf.savefig(f)
 
-            for i,f in enumerate(junctions_figs):
+            for _, f in enumerate(junctions_figs):
                 pdf.savefig(f)
 
             plt.close()
