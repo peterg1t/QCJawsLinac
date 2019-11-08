@@ -74,6 +74,7 @@ import peak_find_fieldrot as pffr
 import minimize_junction_Y as minY
 import minimize_junction_X as minX
 import minimize_field_rot as minFR
+import utils as u
 
 
 
@@ -545,13 +546,15 @@ def read_dicom3D(direc, i_option):
                         tmp_array = tmp_array - min_val
                         tmp_array = (1 - tmp_array)  # inverting the range
 
-                        min_val = np.amin(tmp_array)  # normalizing
-                        tmp_array = tmp_array - min_val
-                        tmp_array = tmp_array / (np.amax(tmp_array))
+                        # min_val = np.amin(tmp_array)  # normalizing
+                        # tmp_array = tmp_array - min_val
+                        # tmp_array = tmp_array / (np.amax(tmp_array))
+                        tmp_array=u.norm01(tmp_array)
                     else:
-                        min_val = np.amin(tmp_array)
-                        tmp_array = tmp_array - min_val
-                        tmp_array = tmp_array / (np.amax(tmp_array))  # just normalize
+                        # min_val = np.amin(tmp_array)
+                        # tmp_array = tmp_array - min_val
+                        # tmp_array = tmp_array / (np.amax(tmp_array))
+                        tmp_array=u.norm01(tmp_array)# just normalize
                     ArrayDicom = np.dstack((ArrayDicom, tmp_array))
                     # print("item thickness [mm]=", dataset.SliceThickness)
                     SID = dataset.RTImageSID
@@ -568,13 +571,15 @@ def read_dicom3D(direc, i_option):
                         tmp_array = tmp_array - min_val
                         tmp_array = (1 - tmp_array)  # inverting the range
 
-                        min_val = np.amin(tmp_array)  # normalizing
-                        tmp_array = tmp_array - min_val
-                        tmp_array = tmp_array / (np.amax(tmp_array))
+                        # min_val = np.amin(tmp_array)  # normalizing
+                        # tmp_array = tmp_array - min_val
+                        # tmp_array = tmp_array / (np.amax(tmp_array))
+                        tmp_array = u.norm01(tmp_array)
                     else:
-                        min_val = np.amin(tmp_array)
-                        tmp_array = tmp_array - min_val
-                        tmp_array = tmp_array / (np.amax(tmp_array))  # just normalize
+                        # min_val = np.amin(tmp_array)
+                        # tmp_array = tmp_array - min_val
+                        # tmp_array = tmp_array / (np.amax(tmp_array))  # just normalize
+                        tmp_array = u.norm01(tmp_array)
                     ArrayDicom = np.dstack((ArrayDicom, tmp_array))
             k = k + 1
 
