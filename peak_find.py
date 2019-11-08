@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import signal
-from scipy.signal import find_peaks, peak_prominences, peak_widths
+# from scipy.signal import find_peaks, peak_prominences, peak_widths
+from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 
 
@@ -19,7 +20,7 @@ def peak_find(ampl_resamp, dx):
         amp_base_res = signal.resample(amp_base_res / np.amax(amp_base_res), int(np.ceil(len(amp_base_res) / 2)))
         for k in range(j + 1, ampl_resamp.shape[1]):
             amp_overlay_res = signal.convolve(ampl_resamp[:, k], ampl_resamp[:, k], mode='full')
-            amp_overlay_res = signal.resample(amp_overlay_res / np.amax(amp_overlay_res),int(np.ceil(len(amp_overlay_res) / 2)))
+            amp_overlay_res = signal.resample(amp_overlay_res / np.amax(amp_overlay_res), int(np.ceil(len(amp_overlay_res) / 2)))
             # amp_overlay_res = signal.savgol_filter(ampl_resamp[:, k], 1501, 1)
 
             peak1, _ = find_peaks(amp_base_res, prominence=0.5)
@@ -100,16 +101,16 @@ def peak_find(ampl_resamp, dx):
 
 
 # this subroutine aims to find the peaks
-def peak_find_fieldrot(ampl_resamp, dx,profilename):
+def peak_find_fieldrot(ampl_resamp, dx, profilename):
     peaks = []
     peak_type = []
     for j in range(0, ampl_resamp.shape[1] - 1):
         amp_base_res = signal.convolve(ampl_resamp[:, j], ampl_resamp[:, j], mode='full')
-        amp_base_res=signal.resample(amp_base_res/np.amax(amp_base_res),int(np.ceil(len(amp_base_res)/2)))
+        amp_base_res = signal.resample(amp_base_res/np.amax(amp_base_res), int(np.ceil(len(amp_base_res)/2)))
 
         for k in range(j + 1, ampl_resamp.shape[1]):
             amp_overlay_res = signal.convolve(ampl_resamp[:, k], ampl_resamp[:, k], mode='full')
-            amp_overlay_res = signal.resample(amp_overlay_res/np.amax(amp_overlay_res),int(np.ceil(len(amp_overlay_res)/2)))
+            amp_overlay_res = signal.resample(amp_overlay_res/np.amax(amp_overlay_res), int(np.ceil(len(amp_overlay_res)/2)))
 
 
             peak1, _ = find_peaks(amp_base_res, prominence=0.5)
@@ -122,21 +123,21 @@ def peak_find_fieldrot(ampl_resamp, dx,profilename):
                                 endpoint=False)  # definition of the distance axis
 
 
-                peak_pos, _ = find_peaks(signal.savgol_filter(amp_peak[min(peak1[0],peak2[0]):max(peak1[0],peak2[0])],201,3), prominence=0.010)
-                pos_prominence = signal.peak_prominences(signal.savgol_filter(amp_peak[min(peak1[0],peak2[0]):max(peak1[0],peak2[0])],201,3),peak_pos)
+                peak_pos, _ = find_peaks(signal.savgol_filter(amp_peak[min(peak1[0], peak2[0]):max(peak1[0], peak2[0])], 201, 3), prominence=0.010)
+                pos_prominence = signal.peak_prominences(signal.savgol_filter(amp_peak[min(peak1[0], peak2[0]):max(peak1[0], peak2[0])], 201, 3), peak_pos)
                 # print('#peaks pos det=', len(peak_pos), peak_pos)
                 # print('#pos peaks prominence=', pos_prominence[0])
                 peak_neg, _ = find_peaks(signal.savgol_filter(-amp_peak[min(peak1[0], peak2[0]):max(peak1[0], peak2[0])], 201, 3), prominence=0.010)
-                neg_prominence = signal.peak_prominences(signal.savgol_filter(-amp_peak[min(peak1[0], peak2[0]):max(peak1[0], peak2[0])], 201, 3),peak_neg)
+                neg_prominence = signal.peak_prominences(signal.savgol_filter(-amp_peak[min(peak1[0], peak2[0]):max(peak1[0], peak2[0])], 201, 3), peak_neg)
                 # print('#peaks neg det=',len(peak_neg),peak_neg)
                 # print('#neg peaks prominence=', neg_prominence[0])
                 #we now need to select the peak with the largest prominence positve or negative
                 #we add all the peaks and prominences toghether
-                peaks_all = np.concatenate((peak_pos,peak_neg),axis=None)
-                prom_all=np.concatenate((pos_prominence[0],neg_prominence[0]),axis=None)
+                peaks_all = np.concatenate((peak_pos, peak_neg), axis=None)
+                prom_all = np.concatenate((pos_prominence[0], neg_prominence[0]), axis=None)
                 # print('all peaks',peaks_all,prom_all)
                 peak = peaks_all[np.argmax(prom_all)]
-                if peak.size!=0:
+                if peak.size != 0:
                     if peak in peak_pos:
                         peak_type.append(1)
                         peaks.append(min(peak1[0], peak2[0]) + peak)
@@ -155,7 +156,7 @@ def peak_find_fieldrot(ampl_resamp, dx,profilename):
                     plt.legend()
                     fig.suptitle('Junctions - ' + profilename, fontsize=16)
 
-                elif peak.size==0:
+                elif peak.size == 0:
                     peaks.append(0)
                     peak_type.append(0)
                     print('no peak has been found')

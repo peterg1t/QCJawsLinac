@@ -1,6 +1,5 @@
 import numpy as np
 from scipy import signal
-from scipy.signal import find_peaks, peak_prominences, peak_widths
 import matplotlib.pyplot as plt
 import running_mean as rm
 
@@ -27,8 +26,8 @@ def minimize_junction_fieldrot(amplitude, peaks, peak_type, dx, profilename):
                                                   int(np.ceil(len(amp_overlay_res) / 2)))
             # amp_base_res = signal.savgol_filter(amplitude[:, j], 1001, 3)
             # amp_overlay_res = signal.savgol_filter(amplitude[:, k], 1001, 3)
-            peak1, _ = find_peaks(amp_base_res, prominence=0.5)
-            peak2, _ = find_peaks(amp_overlay_res, prominence=0.5)
+            # peak1, _ = find_peaks(amp_base_res, prominence=0.5)
+            # peak2, _ = find_peaks(amp_overlay_res, prominence=0.5)
 
             cumsum_prev = 1e7
             amp_base_res = amplitude[:, j]
@@ -39,25 +38,25 @@ def minimize_junction_fieldrot(amplitude, peaks, peak_type, dx, profilename):
             else:
                 inc = 1
             for i in range(0, inc * 80, inc * 1):
-                x = np.linspace(0, 0 + (len(amp_base_res) * dx), len(amplitude),
-                                endpoint=False)  # definition of the distance axis
+                # x = np.linspace(0, 0 + (len(amp_base_res) * dx), len(amplitude),
+                #                 endpoint=False)  # definition of the distance axis
                 amp_overlay_res_roll = np.roll(amp_overlay_res, i)
 
                 # amplitude is the vector to analyze +-500 samples from the center
                 amp_tot = (amp_base_res[peaks[j] - 1000:peaks[j] + 1000] + amp_overlay_res_roll[peaks[j] - 1000:peaks[
                                                                                                                    j] + 1000])  # divided by 2 to normalize
-                xsel = x[peaks[j] - 1000:peaks[j] + 1000]
+                # xsel = x[peaks[j] - 1000:peaks[j] + 1000]
                 amp_filt = rm.running_mean(amp_tot, 281)
 
                 cumsum = np.sum(np.abs(amp_tot - amp_filt))
 
-                if cumsum > cumsum_prev:  # then we went too far
+                if cumsum > cumsum_prev:  # then we went too far  # pylint: disable = no-else-break
                     ax = fig.add_subplot(amplitude.shape[1] - 1, 1, kk)
 
                     ax.plot(amp_prev)
                     ax.plot(amp_filt_prev)
                     if kk == 1:
-                        ax.set_title('Minimization result - '+profilename,fontsize=16)
+                        ax.set_title('Minimization result - '+profilename, fontsize=16)
                     if kk == amplitude.shape[1] - 1:  # if we reach the final plot the add the x axis label
                         ax.set_xlabel('distance [mm]')
 
@@ -74,8 +73,5 @@ def minimize_junction_fieldrot(amplitude, peaks, peak_type, dx, profilename):
                     amp_filt_prev = amp_filt
                     cumsum_prev = cumsum
 
+
     return fig
-
-
-
-

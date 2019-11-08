@@ -22,5 +22,5 @@ def norm01(arrayin):
 def find_nearest(array, value): # find the nearest element of the array to a certain value and return the index of that element
     array = np.asarray(array)
     idx = (np.abs(array - value)).argmin()
-    return array[idx],idx
+    return array[idx], idx
     # return array[idx]

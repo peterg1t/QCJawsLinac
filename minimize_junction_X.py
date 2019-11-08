@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import signal
-from scipy.signal import find_peaks, peak_prominences, peak_widths
+# from scipy.signal import find_peaks, peak_prominences, peak_widths
+from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 import running_mean as rm
 
@@ -44,22 +45,22 @@ def minimize_junction_X(amplitude, peaks, peak_type, dx):
                 else:
                     inc = 1
                 for i in range(0, inc * 80, inc * 1):
-                    x = np.linspace(0, 0 + (len(amp_base_res) * dx), len(amplitude),
-                                    endpoint=False)  # definition of the distance axis
+                    # x = np.linspace(0, 0 + (len(amp_base_res) * dx), len(amplitude),
+                    #                 endpoint=False)  # definition of the distance axis
                     amp_overlay_res_roll = np.roll(amp_overlay_res, i)
 
                     # amplitude is the vector to analyze +-500 samples from the center
                     amp_tot = (amp_base_res[peaks[j] - 1000:peaks[j] + 1000] + amp_overlay_res_roll[
                                                                                peaks[j] - 1000:peaks[
                                                                                                    j] + 1000])  # divided by 2 to normalize
-                    xsel = x[peaks[j] - 1000:peaks[j] + 1000]
+                    # xsel = x[peaks[j] - 1000:peaks[j] + 1000]
 
                     amp_filt = rm.running_mean(amp_tot, 281)
                     cumsum = np.sum(np.abs(amp_tot - amp_filt))
 
 
 
-                    if cumsum > cumsum_prev:  # then we went too far
+                    if cumsum > cumsum_prev:  # then we went too far #pylint: disable = no-else-break
                         break
                     else:
                         amp_prev = amp_tot
@@ -85,11 +86,5 @@ def minimize_junction_X(amplitude, peaks, peak_type, dx):
                     ax.annotate('delta= 0 mm (NO PEAK FOUND)', xy=(2, 1), xycoords='axes fraction',
                                 xytext=(.35, .10))
 
-                    # plt.show()
-
-
-
-            # else:
-                # print(j, k, 'the data is not contiguous finding another curve in dataset')
 
     return fig

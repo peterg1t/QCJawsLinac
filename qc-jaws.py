@@ -549,12 +549,12 @@ def read_dicom3D(direc, i_option):
                         # min_val = np.amin(tmp_array)  # normalizing
                         # tmp_array = tmp_array - min_val
                         # tmp_array = tmp_array / (np.amax(tmp_array))
-                        tmp_array=u.norm01(tmp_array)
+                        tmp_array = u.norm01(tmp_array)
                     else:
                         # min_val = np.amin(tmp_array)
                         # tmp_array = tmp_array - min_val
                         # tmp_array = tmp_array / (np.amax(tmp_array))
-                        tmp_array=u.norm01(tmp_array)# just normalize
+                        tmp_array = u.norm01(tmp_array)# just normalize
                     ArrayDicom = np.dstack((ArrayDicom, tmp_array))
                     # print("item thickness [mm]=", dataset.SliceThickness)
                     SID = dataset.RTImageSID
