@@ -59,26 +59,27 @@
 ###########################################################################################
 
 
-
-import os
-import pydicom
 import argparse
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
+import os
+
 from tqdm import tqdm
+
 import numpy as np
 from scipy import signal
-# from scipy.signal import find_peaks, peak_prominences, peak_widths
+
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
+
+import pydicom
+
+import minimize_field_rot as minFR
+import minimize_junction_X as minX
+import minimize_junction_Y as minY
 import peak_find as pf
 import peak_find_fieldrot as pffr
-import minimize_junction_Y as minY
-import minimize_junction_X as minX
-import minimize_field_rot as minFR
 import utils as u
 
-
-
-
+sys.path.append(os.path.join(os.path.dirname(__file__), "..", "utils"))
 
 
 # axial visualization and scrolling
@@ -88,22 +89,21 @@ def multi_slice_viewer(volume, dx, dy):
     ax.volume = volume
     ax.index = volume.shape[2] // 2
     print(ax.index)
-    extent = (0, 0 + (volume.shape[1] * dx),
-              0, 0 + (volume.shape[0] * dy))
+    extent = (0, 0 + (volume.shape[1] * dx), 0, 0 + (volume.shape[0] * dy))
     ax.imshow(volume[:, :, ax.index], extent=extent)
-    ax.set_xlabel('x distance [mm]')
-    ax.set_ylabel('y distance [mm]')
+    ax.set_xlabel("x distance [mm]")
+    ax.set_ylabel("y distance [mm]")
     ax.set_title("item=" + str(ax.index))
-    fig.suptitle('Axial view', fontsize=16)
-    fig.canvas.mpl_connect('key_press_event', process_key_axial)
+    fig.suptitle("Axial view", fontsize=16)
+    fig.canvas.mpl_connect("key_press_event", process_key_axial)
 
 
 def process_key_axial(event):
     fig = event.canvas.figure
     ax = fig.axes[0]
-    if event.key == 'j':
+    if event.key == "j":
         previous_slice_axial(ax)
-    elif event.key == 'k':
+    elif event.key == "k":
         next_slice_axial(ax)
     ax.set_title("item=" + str(ax.index))
     fig.canvas.draw()
@@ -112,19 +112,15 @@ def process_key_axial(event):
 def previous_slice_axial(ax):
     volume = ax.volume
     ax.index = (ax.index - 1) % volume.shape[2]  # wrap around using %
-    #print(ax.index, volume.shape[2])
+    # print(ax.index, volume.shape[2])
     ax.images[0].set_array(volume[:, :, ax.index])
 
 
 def next_slice_axial(ax):
     volume = ax.volume
     ax.index = (ax.index + 1) % volume.shape[2]
-    #print(ax.index, volume.shape[2])
+    # print(ax.index, volume.shape[2])
     ax.images[0].set_array(volume[:, :, ax.index])
-
-
-
-
 
 
 # this subroutine will merge the two jaws into a single image and display a graph of the overlap
@@ -135,9 +131,13 @@ def merge_view_vert(volume, dx, dy):
     merge_vol = np.zeros((volume.shape[0], volume.shape[1]))
 
     # creating vector for processing along cols (one row)
-    amplitude = np.zeros((volume.shape[1], volume.shape[2]))  # 1 if it is vertical 0 if the bars are horizontal
+    amplitude = np.zeros(
+        (volume.shape[1], volume.shape[2])
+    )  # 1 if it is vertical 0 if the bars are horizontal
 
-    x = np.linspace(0, 0 + (volume.shape[1] * dx), volume.shape[1], endpoint=False)  # definition of the distance axis
+    x = np.linspace(
+        0, 0 + (volume.shape[1] * dx), volume.shape[1], endpoint=False
+    )  # definition of the distance axis
     # x = np.arange(0,)#definition of the distance axis
 
     # merging the two images together
@@ -147,42 +147,32 @@ def merge_view_vert(volume, dx, dy):
     for item in tqdm(range(0, volume.shape[2])):
         merge_vol = merge_vol + volume[:, :, item]
         amplitude[:, item] = volume[int(volume.shape[0] / 2), :, item]
-        ampl_resamp[:, item] = signal.resample(amplitude[:, item],
-                                                int(len(amplitude)) * 10)  # resampling the amplitude vector
+        ampl_resamp[:, item] = signal.resample(
+            amplitude[:, item], int(len(amplitude)) * 10
+        )  # resampling the amplitude vector
         # amp_peak = amp_peak + ampl_resamp[:, item] / volume.shape[2]
 
     fig, ax = plt.subplots(nrows=2, squeeze=True, figsize=(6, 8))
 
-    extent = (0, 0 + (volume.shape[1] * dx),
-              0, 0 + (volume.shape[0] * dy))
+    extent = (0, 0 + (volume.shape[1] * dx), 0, 0 + (volume.shape[0] * dy))
 
     ax[0].imshow(merge_vol, extent=extent)
     # ax[0].set_aspect('equal', 'box')
-    ax[0].set_xlabel('x distance [mm]')
-    ax[0].set_ylabel('y distance [mm]')
+    ax[0].set_xlabel("x distance [mm]")
+    ax[0].set_ylabel("y distance [mm]")
 
     ax[1].plot(x, amplitude)
-    ax[1].set_xlabel('x distance [mm]')
-    ax[1].set_ylabel('amplitude')
+    ax[1].set_xlabel("x distance [mm]")
+    ax[1].set_ylabel("amplitude")
     ax[1].legend()
-    # ax.set_title("item=" + str(ax.index))
-    fig.suptitle('Merged volume', fontsize=16)
+    fig.suptitle("Merged volume", fontsize=16)
 
     # peaks, peak_type, peak_figs = peak_find(ampl_resamp, dx)
     peaks, peak_type, peak_figs = pf.peak_find(ampl_resamp, dx)
-    # junction_figs = minimize_junction_X(ampl_resamp, peaks, peak_type, dx / 10)
     junction_figs = minX.minimize_junction_X(ampl_resamp, peaks, peak_type, dx / 10)
     junctions.append(junction_figs)
 
     return fig, peak_figs, junctions
-
-
-
-
-
-
-
-
 
 
 # this subroutine will merge the 4 jaws and analyze them
@@ -194,9 +184,13 @@ def merge_view_horz(volume, dx, dy):
     merge_vol = np.zeros((volume.shape[0], volume.shape[1]))
 
     # creating vector for processing along cols (one row)
-    amplitude = np.zeros((volume.shape[0], volume.shape[2]))  # 1 if it is vertical 0 if the bars are horizontal
+    amplitude = np.zeros(
+        (volume.shape[0], volume.shape[2])
+    )  # 1 if it is vertical 0 if the bars are horizontal
 
-    y = np.linspace(0, 0 + (volume.shape[0] * dy), volume.shape[0], endpoint=False)  # definition of the distance axis
+    y = np.linspace(
+        0, 0 + (volume.shape[0] * dy), volume.shape[0], endpoint=False
+    )  # definition of the distance axis
     # x = np.arange(0,) #definition of the distance axis
 
     # merging the two images together
@@ -206,25 +200,24 @@ def merge_view_horz(volume, dx, dy):
     for item in tqdm(range(0, volume.shape[2])):
         merge_vol = merge_vol + volume[:, :, item]
         amplitude[:, item] = volume[:, int(volume.shape[1] / 2), item]
-        ampl_resamp[:, item] = signal.resample(amplitude[:, item],
-                                                int(len(amplitude)) * 10)  # resampling the amplitude vector
+        ampl_resamp[:, item] = signal.resample(
+            amplitude[:, item], int(len(amplitude)) * 10
+        )  # resampling the amplitude vector
         # amp_peak = amp_peak + ampl_resamp[:, item] / volume.shape[2]
 
     fig, ax = plt.subplots(nrows=2, squeeze=True, figsize=(6, 8))
 
-    extent = (0, 0 + (volume.shape[1] * dx),
-              0, 0 + (volume.shape[0] * dy))
+    extent = (0, 0 + (volume.shape[1] * dx), 0, 0 + (volume.shape[0] * dy))
 
+    ax[0].imshow(merge_vol, extent=extent, aspect="auto")
+    ax[0].set_xlabel("x distance [mm]")
+    ax[0].set_ylabel("y distance [mm]")
 
-    ax[0].imshow(merge_vol, extent=extent, aspect='auto')
-    ax[0].set_xlabel('x distance [mm]')
-    ax[0].set_ylabel('y distance [mm]')
-
-    ax[1].plot(y, amplitude, label='Amplitude profile')
-    ax[1].set_ylabel('amplitude')
-    ax[1].set_xlabel('y distance [mm]')
+    ax[1].plot(y, amplitude, label="Amplitude profile")
+    ax[1].set_ylabel("amplitude")
+    ax[1].set_xlabel("y distance [mm]")
     ax[1].legend()
-    fig.suptitle('Merged volume', fontsize=16)
+    fig.suptitle("Merged volume", fontsize=16)
 
     # peaks, peak_type, peak_figs = peak_find(ampl_resamp, dy)
     peaks, peak_type, peak_figs = pf.peak_find(ampl_resamp, dy)
@@ -235,57 +228,70 @@ def merge_view_horz(volume, dx, dy):
     return fig, peak_figs, junctions
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 # this subroutine will merge the 4 jaws and analyze the two upper and two lower pairs
 # each jaw is 6cm in length (60mm)
 def merge_view_filtrot(volume, dx, dy):
 
-    volume_resort = np.copy(volume)  # this will hold the resorted volume 0 to 3 clockwise
+    volume_resort = np.copy(
+        volume
+    )  # this will hold the resorted volume 0 to 3 clockwise
     junctions_comb = []
     peaks_figs_comb = []
-
-
-
-
 
     # we need to create 4 matches
 
     # 0,1,2,3 will be tagged top left, top right, bottom right, bottom left
     for i in range(0, int(np.shape(volume)[2])):
-        diag_stack = [0, 0, 0, 0]  # we will sum along one direction whichever is biggest will tag the file
+        diag_stack = [
+            0,
+            0,
+            0,
+            0,
+        ]  # we will sum along one direction whichever is biggest will tag the file
         for j in range(0, int(min([np.shape(volume)[0], np.shape(volume)[1]]) / 2)):
             # print('j=',j,int(np.shape(volume)[0] / 2)+j, int(np.shape(volume)[1] / 2)+j)
-            diag_stack[0] = diag_stack[0] + volume[
-                int(np.shape(volume)[0] / 2) - j, int(np.shape(volume)[1] / 2) - j, i]
-            diag_stack[1] = diag_stack[1] + volume[
-                int(np.shape(volume)[0] / 2) - j, int(np.shape(volume)[1] / 2) + j, i]
-            diag_stack[2] = diag_stack[2] + volume[
-                int(np.shape(volume)[0] / 2) + j, int(np.shape(volume)[1] / 2) + j, i]
-            diag_stack[3] = diag_stack[3] + volume[
-                int(np.shape(volume)[0] / 2) + j, int(np.shape(volume)[1] / 2) - j, i]
+            diag_stack[0] = (
+                diag_stack[0]
+                + volume[
+                    int(np.shape(volume)[0] / 2) - j,
+                    int(np.shape(volume)[1] / 2) - j,
+                    i,
+                ]
+            )
+            diag_stack[1] = (
+                diag_stack[1]
+                + volume[
+                    int(np.shape(volume)[0] / 2) - j,
+                    int(np.shape(volume)[1] / 2) + j,
+                    i,
+                ]
+            )
+            diag_stack[2] = (
+                diag_stack[2]
+                + volume[
+                    int(np.shape(volume)[0] / 2) + j,
+                    int(np.shape(volume)[1] / 2) + j,
+                    i,
+                ]
+            )
+            diag_stack[3] = (
+                diag_stack[3]
+                + volume[
+                    int(np.shape(volume)[0] / 2) + j,
+                    int(np.shape(volume)[1] / 2) - j,
+                    i,
+                ]
+            )
 
         volume_resort[:, :, np.argmax(diag_stack)] = volume[:, :, i]
-
-
 
     # creating merged volumes
     merge_vol = np.zeros((volume_resort.shape[0], volume_resort.shape[1]))
 
     # creating vector for processing (1 horizontal & 1 vertical)
     amplitude_horz = np.zeros(
-        (volume_resort.shape[1], volume_resort.shape[2]))  # 1 if it is vertical 0 if the bars are horizontal
+        (volume_resort.shape[1], volume_resort.shape[2])
+    )  # 1 if it is vertical 0 if the bars are horizontal
     amplitude_vert = np.zeros((volume_resort.shape[0], volume_resort.shape[2]))
 
     # y = np.linspace(0, 0 + (volume_resort.shape[0] * dy), volume_resort.shape[0],
@@ -293,25 +299,42 @@ def merge_view_filtrot(volume, dx, dy):
     # x = np.linspace(0, 0 + (volume_resort.shape[1] * dy), volume_resort.shape[1],
     #                 endpoint=False)  # definition of the distance axis
 
+    ampl_resamp_y1 = np.zeros(
+        ((volume_resort.shape[0]) * 10, int(volume_resort.shape[2] / 2))
+    )
+    ampl_resamp_y2 = np.zeros(
+        ((volume_resort.shape[0]) * 10, int(volume_resort.shape[2] / 2))
+    )
 
-    ampl_resamp_y1 = np.zeros(((volume_resort.shape[0]) * 10, int(volume_resort.shape[2] / 2)))
-    ampl_resamp_y2 = np.zeros(((volume_resort.shape[0]) * 10, int(volume_resort.shape[2] / 2)))
+    ampl_resamp_x1 = np.zeros(
+        ((volume_resort.shape[1]) * 10, int(volume_resort.shape[2] / 2))
+    )
+    ampl_resamp_x2 = np.zeros(
+        ((volume_resort.shape[1]) * 10, int(volume_resort.shape[2] / 2))
+    )
 
+    amplitude_horz[:, 0] = volume_resort[
+        int(volume_resort.shape[0] / 3.25), :, 0
+    ]  # for profile 1
+    amplitude_horz[:, 1] = volume_resort[
+        int(volume_resort.shape[0] / 3.25), :, 1
+    ]  # for profile 1
+    amplitude_horz[:, 3] = volume_resort[
+        int(volume_resort.shape[0]) - int(volume_resort.shape[0] / 3.25), :, 2
+    ]  # the numbers here are reversed because we are going to slide the second graph (the overlay) to minimize the error  #for profile 2
+    amplitude_horz[:, 2] = volume_resort[
+        int(volume_resort.shape[0]) - int(volume_resort.shape[0] / 3.25), :, 3
+    ]
 
-    ampl_resamp_x1 = np.zeros(((volume_resort.shape[1]) * 10, int(volume_resort.shape[2] / 2)))
-    ampl_resamp_x2 = np.zeros(((volume_resort.shape[1]) * 10, int(volume_resort.shape[2] / 2)))
-
-
-    amplitude_horz[:, 0] = volume_resort[int(volume_resort.shape[0] / 3.25), :, 0]    # for profile 1
-    amplitude_horz[:, 1] = volume_resort[int(volume_resort.shape[0] / 3.25), :, 1]    # for profile 1
-    amplitude_horz[:, 3] = volume_resort[int(volume_resort.shape[0]) - int(volume_resort.shape[0] / 3.25), :,
-                           2]  # the numbers here are reversed because we are going to slide the second graph (the overlay) to minimize the error  #for profile 2
-    amplitude_horz[:, 2] = volume_resort[int(volume_resort.shape[0]) - int(volume_resort.shape[0] / 3.25), :, 3]
-
-    amplitude_vert[:, 0] = volume_resort[:, int(volume_resort.shape[1]) - int(volume_resort.shape[1] / 2.8),
-                           1]  # the numbers here are reversed because we are going to slide the second graph (the overlay) to minimize the error #for profile 3
-    amplitude_vert[:, 1] = volume_resort[:, int(volume_resort.shape[1]) - int(volume_resort.shape[1] / 2.8), 2]
-    amplitude_vert[:, 3] = volume_resort[:, int(volume_resort.shape[1] / 2.8), 3]   #for profile 4
+    amplitude_vert[:, 0] = volume_resort[
+        :, int(volume_resort.shape[1]) - int(volume_resort.shape[1] / 2.8), 1
+    ]  # the numbers here are reversed because we are going to slide the second graph (the overlay) to minimize the error #for profile 3
+    amplitude_vert[:, 1] = volume_resort[
+        :, int(volume_resort.shape[1]) - int(volume_resort.shape[1] / 2.8), 2
+    ]
+    amplitude_vert[:, 3] = volume_resort[
+        :, int(volume_resort.shape[1] / 2.8), 3
+    ]  # for profile 4
     amplitude_vert[:, 2] = volume_resort[:, int(volume_resort.shape[1] / 2.8), 0]
 
     plt.figure()
@@ -319,73 +342,111 @@ def merge_view_filtrot(volume, dx, dy):
         merge_vol = merge_vol + volume[:, :, item]
 
         data_samp = amplitude_vert[:, item]
-        ampl_resamp_y1[:, item] = signal.resample(data_samp, int(np.shape(amplitude_vert)[0]) * 10)
+        ampl_resamp_y1[:, item] = signal.resample(
+            data_samp, int(np.shape(amplitude_vert)[0]) * 10
+        )
         data_samp = amplitude_horz[:, item]
-        ampl_resamp_x1[:, item] = signal.resample(data_samp, int(np.shape(amplitude_horz)[0]) * 10)
-
-
-
+        ampl_resamp_x1[:, item] = signal.resample(
+            data_samp, int(np.shape(amplitude_horz)[0]) * 10
+        )
 
     for item in tqdm(range(int(volume.shape[2] / 2), volume.shape[2])):
         merge_vol = merge_vol + volume[:, :, item]
         data_samp = amplitude_vert[:, item]
-        ampl_resamp_y2[:, item - int(volume.shape[2] / 2)] = signal.resample(data_samp,
-                                                                              int(np.shape(amplitude_vert)[0]) * 10)
+        ampl_resamp_y2[:, item - int(volume.shape[2] / 2)] = signal.resample(
+            data_samp, int(np.shape(amplitude_vert)[0]) * 10
+        )
         data_samp = amplitude_horz[:, item]
-        ampl_resamp_x2[:, item - int(volume.shape[2] / 2)] = signal.resample(data_samp,
-                                                                              int(np.shape(amplitude_horz)[0]) * 10)
-
+        ampl_resamp_x2[:, item - int(volume.shape[2] / 2)] = signal.resample(
+            data_samp, int(np.shape(amplitude_horz)[0]) * 10
+        )
 
     fig, ax = plt.subplots(ncols=1, nrows=1, squeeze=True, figsize=(6, 8))
 
+    extent = (0, 0 + (volume.shape[1] * dx), 0, 0 + (volume.shape[0] * dy))
 
-    extent = (0, 0 + (volume.shape[1] * dx),
-              0, 0 + (volume.shape[0] * dy))
-
-    ax.imshow(merge_vol, extent=extent, aspect='auto')
-    ax.set_aspect('equal', 'box')
-    ax.set_xlabel('x distance [mm]')
-    ax.set_ylabel('y distance [mm]')
-    fig.suptitle('Merged volume', fontsize=16)
-
+    ax.imshow(merge_vol, extent=extent, aspect="auto")
+    ax.set_aspect("equal", "box")
+    ax.set_xlabel("x distance [mm]")
+    ax.set_ylabel("y distance [mm]")
+    fig.suptitle("Merged volume", fontsize=16)
 
     ax.hlines(dy * int(volume_resort.shape[0] / 3.25), 0, dx * volume_resort.shape[1])
-    ax.text(dx * int(volume_resort.shape[1]/2.25), dy * int(volume_resort.shape[0] / 3), 'Profile 2')
+    ax.text(
+        dx * int(volume_resort.shape[1] / 2.25),
+        dy * int(volume_resort.shape[0] / 3),
+        "Profile 2",
+    )
 
-    ax.hlines(dy * int(volume_resort.shape[0]) - dy*int(volume_resort.shape[0] / 3.25), 0, dx * volume_resort.shape[1])
-    ax.text(dx * int(volume_resort.shape[1] / 2.25), dy * int(volume_resort.shape[0]) - dy*int(volume_resort.shape[0] / 3.5), 'Profile 1')
+    ax.hlines(
+        dy * int(volume_resort.shape[0]) - dy * int(volume_resort.shape[0] / 3.25),
+        0,
+        dx * volume_resort.shape[1],
+    )
+    ax.text(
+        dx * int(volume_resort.shape[1] / 2.25),
+        dy * int(volume_resort.shape[0]) - dy * int(volume_resort.shape[0] / 3.5),
+        "Profile 1",
+    )
 
     ax.vlines(dx * int(volume_resort.shape[1] / 2.8), 0, dy * volume_resort.shape[0])
-    ax.text(dx * int(volume_resort.shape[1] / 3.1), dy * int(volume_resort.shape[0]/1.8), 'Profile 4', rotation=90)
+    ax.text(
+        dx * int(volume_resort.shape[1] / 3.1),
+        dy * int(volume_resort.shape[0] / 1.8),
+        "Profile 4",
+        rotation=90,
+    )
 
-    ax.vlines(dx * int(volume_resort.shape[1]) - dx*int(volume_resort.shape[1] / 2.8), 0, dy * volume_resort.shape[0])
-    ax.text(dx * int(volume_resort.shape[1]) - dx*int(volume_resort.shape[1] / 2.9), dy * int(volume_resort.shape[0]/1.8), 'Profile 3', rotation=90)
+    ax.vlines(
+        dx * int(volume_resort.shape[1]) - dx * int(volume_resort.shape[1] / 2.8),
+        0,
+        dy * volume_resort.shape[0],
+    )
+    ax.text(
+        dx * int(volume_resort.shape[1]) - dx * int(volume_resort.shape[1] / 2.9),
+        dy * int(volume_resort.shape[0] / 1.8),
+        "Profile 3",
+        rotation=90,
+    )
     # plt.show()
 
-    peaks, peak_type, peak_figs = pffr.peak_find_fieldrot(ampl_resamp_x1, dx, 'Profile 1')
-    junction_figs = minFR.minimize_junction_fieldrot(ampl_resamp_x1, peaks, peak_type, dx / 10, 'Profile 1')
+    peaks, peak_type, peak_figs = pffr.peak_find_fieldrot(
+        ampl_resamp_x1, dx, "Profile 1"
+    )
+    junction_figs = minFR.minimize_junction_fieldrot(
+        ampl_resamp_x1, peaks, peak_type, dx / 10, "Profile 1"
+    )
     peaks_figs_comb.append(peak_figs)
     junctions_comb.append(junction_figs)
 
-    peaks, peak_type, peak_figs = pffr.peak_find_fieldrot(ampl_resamp_x2, dx, 'Profile 2')
-    junction_figs = minFR.minimize_junction_fieldrot(ampl_resamp_x2, peaks, peak_type, dx / 10, 'Profile 2')
+    peaks, peak_type, peak_figs = pffr.peak_find_fieldrot(
+        ampl_resamp_x2, dx, "Profile 2"
+    )
+    junction_figs = minFR.minimize_junction_fieldrot(
+        ampl_resamp_x2, peaks, peak_type, dx / 10, "Profile 2"
+    )
     peaks_figs_comb.append(peak_figs)
     junctions_comb.append(junction_figs)
 
-    peaks, peak_type, peak_figs = pffr.peak_find_fieldrot(ampl_resamp_y1, dy, 'Profile 3')
-    junction_figs = minFR.minimize_junction_fieldrot(ampl_resamp_y1, peaks, peak_type, dy / 10, 'Profile 3')
+    peaks, peak_type, peak_figs = pffr.peak_find_fieldrot(
+        ampl_resamp_y1, dy, "Profile 3"
+    )
+    junction_figs = minFR.minimize_junction_fieldrot(
+        ampl_resamp_y1, peaks, peak_type, dy / 10, "Profile 3"
+    )
     peaks_figs_comb.append(peak_figs)
     junctions_comb.append(junction_figs)
 
-    peaks, peak_type, peak_figs = pffr.peak_find_fieldrot(ampl_resamp_y2, dy, 'Profile 4')
-    junction_figs = minFR.minimize_junction_fieldrot(ampl_resamp_y2, peaks, peak_type, dy / 10, 'Profile 4')
+    peaks, peak_type, peak_figs = pffr.peak_find_fieldrot(
+        ampl_resamp_y2, dy, "Profile 4"
+    )
+    junction_figs = minFR.minimize_junction_fieldrot(
+        ampl_resamp_y2, peaks, peak_type, dy / 10, "Profile 4"
+    )
     peaks_figs_comb.append(peak_figs)
     junctions_comb.append(junction_figs)
 
     return fig, peaks_figs_comb, junctions_comb
-
-
-
 
 
 # this routine anlyzes the volume and autodetect the images and categorizes them for different tests
@@ -394,29 +455,55 @@ def image_analyze(volume, i_opt):
     yfield = []
     rotfield = []
 
-    if i_opt.startswith(('y', 'yeah', 'yes')):
+    if i_opt.startswith(("y", "yeah", "yes")):
         kx = 0
         ky = 0
         krot = 0
         for item in range(0, volume.shape[2]):
-            stack1 = np.sum(volume[
-                            int(np.shape(volume)[0] / 2 - np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2):int(
-                                np.shape(volume)[0] / 2 + np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2),
-                            int(np.shape(volume)[1] / 2 - np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2):int(
-                                np.shape(volume)[1] / 2 + np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2),
-                            item], axis=0)
+            stack1 = np.sum(
+                volume[
+                    int(
+                        np.shape(volume)[0] / 2
+                        - np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2
+                    ) : int(
+                        np.shape(volume)[0] / 2
+                        + np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2
+                    ),
+                    int(
+                        np.shape(volume)[1] / 2
+                        - np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2
+                    ) : int(
+                        np.shape(volume)[1] / 2
+                        + np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2
+                    ),
+                    item,
+                ],
+                axis=0,
+            )
             maxstack1 = np.amax(stack1)
 
             # stack2 = np.sum(volume[:, :, item], axis=1)
-            stack2 = np.sum(volume[
-                            int(np.shape(volume)[0] / 2 - np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2):int(
-                                np.shape(volume)[0] / 2 + np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2),
-                            int(np.shape(volume)[1] / 2 - np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2):int(
-                                np.shape(volume)[1] / 2 + np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2),
-                            item],
-                            axis=1)
+            stack2 = np.sum(
+                volume[
+                    int(
+                        np.shape(volume)[0] / 2
+                        - np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2
+                    ) : int(
+                        np.shape(volume)[0] / 2
+                        + np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2
+                    ),
+                    int(
+                        np.shape(volume)[1] / 2
+                        - np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2
+                    ) : int(
+                        np.shape(volume)[1] / 2
+                        + np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2
+                    ),
+                    item,
+                ],
+                axis=1,
+            )
             maxstack2 = np.amax(stack2)
-
 
             if maxstack2 / maxstack1 > 1.1:  # It is a Y field folder
                 if ky == 0:
@@ -445,28 +532,55 @@ def image_analyze(volume, i_opt):
                     rotfield = np.append(rotfield, volappend[:, :, np.newaxis], axis=2)
                 krot = krot + 1
 
-
-
-
-
     else:
         kx = 0
         ky = 0
         krot = 0
         for item in range(0, volume.shape[2]):
-            stack1 = np.sum(volume[int(np.shape(volume)[0]/2-np.amin([np.shape(volume)[0], np.shape(volume)[1]])/2):int(np.shape(volume)[0]/2+np.amin([np.shape(volume)[0], np.shape(volume)[1]])/2), int(np.shape(volume)[1]/2-np.amin([np.shape(volume)[0], np.shape(volume)[1]])/2):int(np.shape(volume)[1]/2+np.amin([np.shape(volume)[0], np.shape(volume)[1]])/2), item], axis=0)
+            stack1 = np.sum(
+                volume[
+                    int(
+                        np.shape(volume)[0] / 2
+                        - np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2
+                    ) : int(
+                        np.shape(volume)[0] / 2
+                        + np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2
+                    ),
+                    int(
+                        np.shape(volume)[1] / 2
+                        - np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2
+                    ) : int(
+                        np.shape(volume)[1] / 2
+                        + np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2
+                    ),
+                    item,
+                ],
+                axis=0,
+            )
             maxstack1 = np.amax(stack1)
 
             # stack2 = np.sum(volume[:, :, item], axis=1)
-            stack2 = np.sum(volume[
-                            int(np.shape(volume)[0] / 2 - np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2):int(
-                                np.shape(volume)[0] / 2 + np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2),
-                            int(np.shape(volume)[1] / 2 - np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2):int(
-                                np.shape(volume)[1] / 2 + np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2), item],
-                            axis=1)
+            stack2 = np.sum(
+                volume[
+                    int(
+                        np.shape(volume)[0] / 2
+                        - np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2
+                    ) : int(
+                        np.shape(volume)[0] / 2
+                        + np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2
+                    ),
+                    int(
+                        np.shape(volume)[1] / 2
+                        - np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2
+                    ) : int(
+                        np.shape(volume)[1] / 2
+                        + np.amin([np.shape(volume)[0], np.shape(volume)[1]]) / 2
+                    ),
+                    item,
+                ],
+                axis=1,
+            )
             maxstack2 = np.amax(stack2)
-
-
 
             if maxstack2 / maxstack1 > 1.5:  # It is a Y field folder
                 if ky == 0:
@@ -475,7 +589,7 @@ def image_analyze(volume, i_opt):
                 else:
                     volappend = volume[:, :, item]
                     yfield = np.append(yfield, volappend[:, :, np.newaxis], axis=2)
-                ky = ky+1
+                ky = ky + 1
             elif maxstack2 / maxstack1 < 0.5:  # It is a X field folder
                 if kx == 0:
                     xfield = volume[:, :, item]
@@ -485,7 +599,7 @@ def image_analyze(volume, i_opt):
                     volappend = volume[:, :, item]
                     xfield = np.append(xfield, volappend[:, :, np.newaxis], axis=2)
                 kx = kx + 1
-            else:    # It is a field rotation folder
+            else:  # It is a field rotation folder
                 if krot == 0:
                     rotfield = volume[:, :, item]
                     rotfield = rotfield[:, :, np.newaxis]
@@ -495,15 +609,7 @@ def image_analyze(volume, i_opt):
                     rotfield = np.append(rotfield, volappend[:, :, np.newaxis], axis=2)
                 krot = krot + 1
 
-
-
-
-
-
     return xfield, yfield, rotfield
-
-
-
 
 
 # this routine anlyzes the volume and autodetect what type of analysis to carry on (x, Y, Field Rot)
@@ -525,26 +631,26 @@ def folder_analyze(volume):
         return field
 
 
-
-
-
 def read_dicom3D(direc, i_option):
     # item = 0
-    for subdir, dirs, files in os.walk(direc): # pylint: disable = unused-variable
+    for subdir, dirs, files in os.walk(direc):  # pylint: disable = unused-variable
         k = 0
         for file in tqdm(sorted(files)):
             # print('filename=', file)
-            if os.path.splitext(file)[1] == '.dcm':
+            if os.path.splitext(file)[1] == ".dcm":
                 dataset = pydicom.dcmread(direc + file)
                 if k == 0:
-                    ArrayDicom = np.zeros((dataset.Rows, dataset.Columns, 0), dtype=dataset.pixel_array.dtype)
+                    ArrayDicom = np.zeros(
+                        (dataset.Rows, dataset.Columns, 0),
+                        dtype=dataset.pixel_array.dtype,
+                    )
                     tmp_array = dataset.pixel_array
-                    if i_option.startswith(('y', 'yeah', 'yes')):
+                    if i_option.startswith(("y", "yeah", "yes")):
                         max_val = np.amax(tmp_array)
                         tmp_array = tmp_array / max_val
                         min_val = np.amin(tmp_array)
                         tmp_array = tmp_array - min_val
-                        tmp_array = (1 - tmp_array)  # inverting the range
+                        tmp_array = 1 - tmp_array  # inverting the range
 
                         # min_val = np.amin(tmp_array)  # normalizing
                         # tmp_array = tmp_array - min_val
@@ -554,7 +660,7 @@ def read_dicom3D(direc, i_option):
                         # min_val = np.amin(tmp_array)
                         # tmp_array = tmp_array - min_val
                         # tmp_array = tmp_array / (np.amax(tmp_array))
-                        tmp_array = u.norm01(tmp_array)# just normalize
+                        tmp_array = u.norm01(tmp_array)  # just normalize
                     ArrayDicom = np.dstack((ArrayDicom, tmp_array))
                     # print("item thickness [mm]=", dataset.SliceThickness)
                     SID = dataset.RTImageSID
@@ -564,12 +670,12 @@ def read_dicom3D(direc, i_option):
                     print("pixel spacing col [mm]=", dy)
                 else:
                     tmp_array = dataset.pixel_array
-                    if i_option.startswith(('y', 'yeah', 'yes')):
+                    if i_option.startswith(("y", "yeah", "yes")):
                         max_val = np.amax(tmp_array)
                         tmp_array = tmp_array / max_val
                         min_val = np.amin(tmp_array)
                         tmp_array = tmp_array - min_val
-                        tmp_array = (1 - tmp_array)  # inverting the range
+                        tmp_array = 1 - tmp_array  # inverting the range
 
                         # min_val = np.amin(tmp_array)  # normalizing
                         # tmp_array = tmp_array - min_val
@@ -583,17 +689,13 @@ def read_dicom3D(direc, i_option):
                     ArrayDicom = np.dstack((ArrayDicom, tmp_array))
             k = k + 1
 
-
     xfield, yfield, rotfield = image_analyze(ArrayDicom, i_option)
-
 
     multi_slice_viewer(ArrayDicom, dx, dy)
 
-
-
     if np.shape(xfield)[2] == 2:
         fig, peak_figs, junctions_figs = merge_view_vert(xfield, dx, dy)
-        with PdfPages(direc + 'jaws_X_report.pdf') as pdf:
+        with PdfPages(direc + "jaws_X_report.pdf") as pdf:
             pdf.savefig(fig)
             # for i in range(0, len(peak_figs)):
             for _, f in enumerate(peak_figs):
@@ -606,12 +708,14 @@ def read_dicom3D(direc, i_option):
             plt.close()
 
     else:
-        print("X jaws data analysis not completed please verify that you have two X jaws images. For more information see manual.")
+        print(
+            "X jaws data analysis not completed please verify that you have two X jaws images. For more information see manual."
+        )
 
     if np.shape(yfield)[2] == 4:
         fig, peak_figs, junctions_figs = merge_view_horz(yfield, dx, dy)
         # print('peak_figs********************************************************=', len(peak_figs),peak_figs)
-        with PdfPages(direc + 'jaws_Y_report.pdf') as pdf:
+        with PdfPages(direc + "jaws_Y_report.pdf") as pdf:
             pdf.savefig(fig)
             # for i in range(0, len(peak_figs)):
             for _, f in enumerate(peak_figs):
@@ -623,12 +727,14 @@ def read_dicom3D(direc, i_option):
             plt.close()
 
     else:
-        print("Y jaws data analysis not completed please verify that you have four Y jaws images. For more information see manual.")
+        print(
+            "Y jaws data analysis not completed please verify that you have four Y jaws images. For more information see manual."
+        )
 
     if np.shape(rotfield)[2] == 4:
         fig, peak_figs, junctions_figs = merge_view_filtrot(rotfield, dx, dy)
 
-        with PdfPages(direc + 'jaws_FR_report.pdf') as pdf:
+        with PdfPages(direc + "jaws_FR_report.pdf") as pdf:
             pdf.savefig(fig)
             for _, f in enumerate(peak_figs):
                 pdf.savefig(f)
@@ -639,31 +745,27 @@ def read_dicom3D(direc, i_option):
             plt.close()
 
     else:
-        print("Field rotation data analysis not completed please verify that you have four field rotation images. For more information see manual.")
+        print(
+            "Field rotation data analysis not completed please verify that you have four field rotation images. For more information see manual."
+        )
 
 
-
-parser = argparse.ArgumentParser()
-parser.add_argument('direpid', type=str, help="Input the directory name")
-args = parser.parse_args()
-
-dirname = args.direpid
-
-
-
+parser = argparse.ArgumentParser()  # pylint: disable = invalid-name
+parser.add_argument("-d", "--directory", help="path to folder")
+args = parser.parse_args()  # pylint: disable = invalid-name
 
 while True:  # example of infinite loops using try and except to catch only numbers
-    line = input('Are these files from a clinac [yes(y)/no(n)]> ')
+    line = input("Are these files from a clinac [yes(y)/no(n)]> ")
     try:
         ##        if line == 'done':
         ##            break
         ioption = str(line.lower())
-        if ioption.startswith(('y', 'yeah', 'yes', 'n', 'no', 'nope')):
+        if ioption.startswith(("y", "yeah", "yes", "n", "no", "nope")):
             break
 
-    except: # pylint: disable = bare-except
-        print('Please enter a valid option:')
+    except:  # pylint: disable = bare-except
+        print("Please enter a valid option:")
 
-
-
-read_dicom3D(dirname, ioption)
+if args.directory:
+    dirname = args.directory  # pylint: disable = invalid-name
+    read_dicom3D(dirname, ioption)

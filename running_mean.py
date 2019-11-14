@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def running_mean(x, N):
     out = np.zeros_like(x, dtype=np.float64)
     dim_len = x.shape[0]
